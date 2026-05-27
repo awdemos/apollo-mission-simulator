@@ -62,6 +62,17 @@ fn apply_switch_to_csm(csm: &mut CommandServiceModule, id: &SwitchId, state: &Sw
         SwitchId::MainBusB => {
             csm.electrical.main_bus_b = *state == SwitchState::On;
         }
+        SwitchId::O2Fan1 | SwitchId::O2Fan2 => {
+            let on = *state == SwitchState::On || *state == SwitchState::Auto;
+            csm.environmental_control.suit_circuit.compressor_active = on;
+        }
+        SwitchId::CabinFan => {
+            csm.environmental_control.cabin_fan.enabled = *state == SwitchState::On;
+        }
+        SwitchId::CryoPumps => {
+            let on = *state == SwitchState::On || *state == SwitchState::Auto;
+            csm.environmental_control.oxygen_supply.cryo_pumps_active = on;
+        }
         _ => {}
     }
 }
@@ -94,6 +105,16 @@ fn apply_breaker_to_csm(csm: &mut CommandServiceModule, id: &BreakerId, closed: 
         BreakerId::FuelCell3MainBusB => {
             if let Some(fc) = csm.electrical.fuel_cells.iter_mut().find(|f| f.id == "FC3") {
                 fc.status = if *closed { crate::systems::SystemStatus::Nominal } else { crate::systems::SystemStatus::Off };
+            }
+        }
+        BreakerId::Inverter1 => {
+            if let Some(inv) = csm.electrical.inverters.iter_mut().find(|i| i.id == "INV1") {
+                inv.status = if *closed { crate::systems::SystemStatus::Nominal } else { crate::systems::SystemStatus::Off };
+            }
+        }
+        BreakerId::Inverter2 => {
+            if let Some(inv) = csm.electrical.inverters.iter_mut().find(|i| i.id == "INV2") {
+                inv.status = if *closed { crate::systems::SystemStatus::Nominal } else { crate::systems::SystemStatus::Off };
             }
         }
         _ => {}

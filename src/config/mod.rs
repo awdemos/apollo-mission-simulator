@@ -10,14 +10,14 @@ pub const CEILING_Y: f32 = FLOOR_Y + PV_HEIGHT * 0.85;
 
 pub const COUCH_WIDTH: f32 = 0.584;
 pub const COUCH_DEPTH: f32 = 0.65;
-pub const COUCH_SPACING: f32 = 0.72;
+pub const COUCH_SPACING: f32 = 0.64;
 pub const COUCH_Y: f32 = FLOOR_Y + 0.45;
 pub const COUCH_Z: f32 = -0.35;
 
 pub const CONSOLE_WIDTH: f32 = 2.13;
 pub const CONSOLE_HEIGHT: f32 = 0.91;
 pub const CONSOLE_DEPTH: f32 = 0.61;
-pub const CONSOLE_Z: f32 = -1.35;
+pub const CONSOLE_Z: f32 = -0.95;
 pub const CONSOLE_Y: f32 = FLOOR_Y + 0.85;
 pub const WING_WIDTH: f32 = 0.91;
 pub const WING_DEPTH: f32 = 0.61;

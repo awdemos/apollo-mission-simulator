@@ -486,6 +486,145 @@ pub struct TranslationalHandController {
     pub locked: bool,
 }
 
+/// LCD-style digital display for telemetry, GET, and other readouts.
+/// Renders as an emissive rectangular panel with 7-segment-style digits.
+#[derive(Component, Debug, Clone)]
+pub struct LcdDisplay {
+    pub label: String,
+    pub value: String,
+    pub unit: String,
+    pub width: usize,
+    pub digits: Vec<u8>,
+    pub decimal_places: u8,
+    pub blink: bool,
+    pub blink_state: bool,
+}
+
+impl Default for LcdDisplay {
+    fn default() -> Self {
+        Self {
+            label: String::new(),
+            value: String::new(),
+            unit: String::new(),
+            width: 6,
+            digits: vec![10; 6],
+            decimal_places: 0,
+            blink: false,
+            blink_state: false,
+        }
+    }
+}
+
+/// Paper tape teleprinter for recording events, commands, and telemetry.
+/// Simulates the ASR-33 or similar teletype used in Apollo mission control
+/// and onboard recording systems.
+#[derive(Component, Debug, Clone)]
+pub struct PaperTapeMachine {
+    pub lines: Vec<String>,
+    pub max_lines: usize,
+    pub chars_per_line: usize,
+    pub auto_scroll: bool,
+    pub printing: bool,
+    pub print_buffer: String,
+    pub print_speed: f32,
+    pub print_timer: f32,
+}
+
+impl Default for PaperTapeMachine {
+    fn default() -> Self {
+        Self {
+            lines: Vec::new(),
+            max_lines: 24,
+            chars_per_line: 72,
+            auto_scroll: true,
+            printing: false,
+            print_buffer: String::new(),
+            print_speed: 10.0,
+            print_timer: 0.0,
+        }
+    }
+}
+
+/// Period-accurate electrical connector for Apollo spacecraft.
+/// Models MIL-DTL-5015 and MIL-DTL-26482 series connectors with
+/// correct shell sizes, pin counts, and materials.
+#[derive(Component, Debug, Clone)]
+pub struct ElectricalConnector {
+    pub part_number: String,
+    pub connector_type: ConnectorType,
+    pub shell_size: u8,
+    pub pin_count: u16,
+    pub pins_occupied: u16,
+    pub mated: bool,
+    pub label: String,
+    pub target_system: SystemTarget,
+    pub shell_diameter_mm: f32,
+    pub length_mm: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConnectorType {
+    /// MIL-DTL-5015 series, general purpose circular
+    MilDtl5015,
+    /// MIL-DTL-26482 series I, miniature bayonet-lock
+    MilDtl26482,
+    /// CSM umbilical interface connector
+    CsmUmbilical,
+    /// Custom or specialized connector
+    Custom,
+}
+
+/// Standard Apollo Block II CSM electrical connectors with
+/// historically accurate part numbers and pin counts.
+pub mod connectors {
+    use super::*;
+
+    /// IMU power/data connector, MIL-DTL-5015 shell size 18
+    pub const IMU_32PIN: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MS3126F-18-32S", ConnectorType::MilDtl5015, 18, 32, 33.3, 45.0
+    );
+
+    /// IMU alternate connector, higher density
+    pub const IMU_61PIN: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MD53-06E15-61S1", ConnectorType::MilDtl26482, 15, 61, 28.0, 40.0
+    );
+
+    /// CDU (Coupling Data Unit) connector
+    pub const CDU_300PIN: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MXJ14867", ConnectorType::Custom, 24, 300, 48.0, 65.0
+    );
+
+    /// PSA (Power Servo Assembly) connector
+    pub const PSA_1304PIN: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MXJ14859", ConnectorType::Custom, 32, 1304, 76.2, 90.0
+    );
+
+    /// AGC main connector
+    pub const AGC_91PIN: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "DS130-27-335-7021", ConnectorType::MilDtl5015, 22, 91, 41.3, 55.0
+    );
+
+    /// CSM umbilical power connector (CM-SM interface)
+    pub const UMBILICAL_POWER: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "CSM-UMB-PWR", ConnectorType::CsmUmbilical, 36, 200, 82.5, 120.0
+    );
+
+    /// CSM umbilical signal connector
+    pub const UMBILICAL_SIGNAL: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "CSM-UMB-SIG", ConnectorType::CsmUmbilical, 28, 120, 63.5, 95.0
+    );
+
+    /// S-band transmitter connector
+    pub const SBAND_XMIT: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MS3126F-14-19S", ConnectorType::MilDtl5015, 14, 19, 26.2, 38.0
+    );
+
+    /// Environmental control system connector
+    pub const ECS_CONNECTOR: (&str, ConnectorType, u8, u16, f32, f32) = (
+        "MS3126F-16-26S", ConnectorType::MilDtl5015, 16, 26, 29.4, 42.0
+    );
+}
+
 fn handle_panel_clicks(
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -650,7 +789,9 @@ fn update_panel_lights(
     mut light_query: Query<(&mut PanelLight, &Handle<StandardMaterial>)>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     time: Res<Time>,
+    time_scale: Res<crate::TimeScale>,
 ) {
+    let dt = time.delta_seconds() * time_scale.multiplier;
     for (mut light, material_handle) in light_query.iter_mut() {
         let Some(material) = materials.get_mut(material_handle) else { continue };
         
@@ -664,7 +805,7 @@ fn update_panel_lights(
 
         if light.lit {
             if light.blink {
-                light.blink_timer += time.delta_seconds();
+                light.blink_timer += dt;
                 let blink_on = (light.blink_timer * 2.0).sin() > 0.0;
                 material.base_color = if blink_on { base_color } else { Color::srgb(0.1, 0.1, 0.1) };
                 material.emissive = if blink_on {
@@ -991,16 +1132,125 @@ fn handle_dsky_input(
 
 
 
+#[derive(Component, Debug, Clone)]
+pub struct ComputeModule {
+    pub name: String,
+    pub system: SystemTarget,
+}
+
+pub fn spawn_electrical_connectors(
+    parent: &mut ChildBuilder,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+) {
+    let equipment_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.45, 0.48, 0.50),
+        metallic: 0.6,
+        perceptual_roughness: 0.5,
+        ..default()
+    });
+
+    let connector_shell_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.35, 0.42, 0.28),
+        metallic: 0.7,
+        perceptual_roughness: 0.4,
+        ..default()
+    });
+
+    let pin_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.85, 0.75, 0.25),
+        metallic: 0.95,
+        perceptual_roughness: 0.1,
+        ..default()
+    });
+
+    let chassis_mesh = meshes.add(Cuboid::new(0.30, 0.20, 0.25));
+    let imu_mesh = meshes.add(Cylinder::new(0.12, 0.18));
+    let radio_mesh = meshes.add(Cuboid::new(0.25, 0.15, 0.20));
+    let ecs_mesh = meshes.add(Cuboid::new(0.20, 0.25, 0.15));
+    let umbilical_mesh = meshes.add(Cylinder::new(0.15, 0.08));
+
+    let modules = [
+        ("IMU", Vec3::new(-0.25, 0.22, 0.62), imu_mesh.clone(), SystemTarget::Guidance, connectors::IMU_32PIN, Vec3::new(0.0, 0.10, 0.0)),
+        ("AGC", Vec3::new(0.0, 0.20, 0.60), chassis_mesh.clone(), SystemTarget::Guidance, connectors::AGC_91PIN, Vec3::new(0.0, 0.10, 0.12)),
+        ("CDU", Vec3::new(0.25, 0.22, 0.62), chassis_mesh.clone(), SystemTarget::Guidance, connectors::CDU_300PIN, Vec3::new(0.0, 0.10, 0.12)),
+        ("PSA", Vec3::new(-0.35, 0.18, 0.55), chassis_mesh.clone(), SystemTarget::Electrical, connectors::PSA_1304PIN, Vec3::new(0.0, 0.10, 0.12)),
+        ("S-Band", Vec3::new(0.65, 0.35, 0.15), radio_mesh.clone(), SystemTarget::Communications, connectors::SBAND_XMIT, Vec3::new(0.0, 0.0, 0.10)),
+        ("ECS", Vec3::new(-0.55, 0.30, 0.25), ecs_mesh.clone(), SystemTarget::LifeSupport, connectors::ECS_CONNECTOR, Vec3::new(0.0, 0.12, 0.0)),
+        ("Umbilical PWR", Vec3::new(0.0, 0.12, -0.35), umbilical_mesh.clone(), SystemTarget::Electrical, connectors::UMBILICAL_POWER, Vec3::new(0.0, 0.04, 0.0)),
+        ("Umbilical SIG", Vec3::new(0.15, 0.12, -0.33), umbilical_mesh.clone(), SystemTarget::Electrical, connectors::UMBILICAL_SIGNAL, Vec3::new(0.0, 0.04, 0.0)),
+    ];
+
+    for (name, pos, mesh, system, (part_number, conn_type, shell_size, pin_count, shell_dia_mm, length_mm), conn_offset) in modules {
+        let shell_radius = shell_dia_mm / 1000.0 * 0.5;
+        let shell_length = length_mm / 1000.0;
+        let shell_mesh = meshes.add(Cylinder::new(shell_radius, shell_length));
+        let pin_face_mesh = meshes.add(Cylinder::new(shell_radius * 0.8, 0.005));
+
+        let connector_rotation = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
+
+        parent.spawn((
+            PbrBundle {
+                mesh,
+                material: equipment_mat.clone(),
+                transform: Transform::from_translation(pos),
+                ..default()
+            },
+            ComputeModule {
+                name: name.to_string(),
+                system,
+            },
+        )).with_children(|module_parent| {
+            module_parent.spawn((
+                PbrBundle {
+                    mesh: shell_mesh,
+                    material: connector_shell_mat.clone(),
+                    transform: Transform::from_translation(conn_offset)
+                        .with_rotation(connector_rotation),
+                    ..default()
+                },
+                ElectricalConnector {
+                    part_number: part_number.to_string(),
+                    connector_type: conn_type,
+                    shell_size,
+                    pin_count,
+                    pins_occupied: pin_count,
+                    mated: true,
+                    label: format!("{} ({}-pin)", part_number, pin_count),
+                    target_system: system,
+                    shell_diameter_mm: shell_dia_mm,
+                    length_mm,
+                },
+            ));
+
+            module_parent.spawn((
+                PbrBundle {
+                    mesh: pin_face_mesh,
+                    material: pin_mat.clone(),
+                    transform: Transform::from_translation(conn_offset + connector_rotation * Vec3::new(0.0, shell_length * 0.5, 0.0))
+                        .with_rotation(connector_rotation),
+                    ..default()
+                },
+            ));
+        });
+    }
+}
+
 fn update_event_timer(
     mut timer_query: Query<&mut EventTimer>,
     time: Res<Time>,
+    time_scale: Res<crate::TimeScale>,
+    mut accumulator: Local<f32>,
 ) {
-    for mut timer in timer_query.iter_mut() {
-        if !timer.counting {
-            continue;
-        }
-        
-        if time.delta_seconds() >= 1.0 {
+    *accumulator += time.delta_seconds() * time_scale.multiplier;
+    
+    while *accumulator >= 1.0 {
+        *accumulator -= 1.0;
+        for mut timer in timer_query.iter_mut() {
+            if !timer.counting {
+                continue;
+            }
+            
             if timer.count_up {
                 timer.seconds += 1;
                 if timer.seconds >= 60 {

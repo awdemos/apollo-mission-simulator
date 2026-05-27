@@ -433,6 +433,8 @@ fn spawn_cm_interior(
             parent, meshes, materials,
             CONSOLE_Y, CONSOLE_Z, CONSOLE_WIDTH, CONSOLE_HEIGHT, CONSOLE_DEPTH
         );
+        
+        crate::panels::spawn_electrical_connectors(parent, meshes, materials);
     });
 }
 

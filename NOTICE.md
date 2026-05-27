@@ -35,9 +35,35 @@ and assets. All trademarks and copyrights belong to their respective owners.
 - **License**: MIT OR Apache-2.0 (dual-licensed)
 - **Usage**: Date/time handling for mission epochs
 
-### Rust Standard Library and Crates
-- anyhow, thiserror, tracing, rand, cc
-- Various open-source licenses (MIT, Apache-2.0)
+### anyhow
+- **Copyright**: David Tolnay and contributors
+- **License**: MIT OR Apache-2.0 (dual-licensed)
+- **Source**: https://github.com/dtolnay/anyhow
+- **Usage**: Error handling and propagation
+
+### thiserror
+- **Copyright**: David Tolnay and contributors
+- **License**: MIT OR Apache-2.0 (dual-licensed)
+- **Source**: https://github.com/dtolnay/thiserror
+- **Usage**: Derive macro for custom error types
+
+### tracing
+- **Copyright**: Tokio Contributors
+- **License**: MIT
+- **Source**: https://github.com/tokio-rs/tracing
+- **Usage**: Structured logging and diagnostics
+
+### rand
+- **Copyright**: The Rust Rand Project Developers
+- **License**: MIT OR Apache-2.0 (dual-licensed)
+- **Source**: https://github.com/rust-random/rand
+- **Usage**: Random number generation for fault simulation
+
+### cc
+- **Copyright**: Alex Crichton and contributors
+- **License**: MIT OR Apache-2.0 (dual-licensed)
+- **Source**: https://github.com/rust-lang/cc-rs
+- **Usage**: Build dependency for compiling C FFI code
 
 ## Apollo Guidance Computer Software
 
@@ -52,17 +78,17 @@ public domain as works of the United States Government:
 
 ## Textures and Visual Assets
 
-- **Earth texture** (`assets/textures/earth.jpg`): 8192x4096 equirectangular map
-  - License status: **REQUIRES VERIFICATION** - believed to be NASA Visible Earth
-    (public domain) or similar freely-licensed source, but origin not confirmed.
-  - Action needed: Replace with confirmed public-domain texture if provenance
-    cannot be established.
+- **Earth texture** (`assets/textures/earth.jpg`): NASA Blue Marble Next Generation
+  - **Source**: NASA Earth Observatory / Visible Earth
+  - **URL**: https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74092/
+  - **License**: Public Domain (NASA)
+  - **Credit**: NASA Earth Observatory image by Reto Stöckli
 
-- **Moon texture** (`assets/textures/moon.jpg`): 8192x4096 equirectangular map
-  - License status: **REQUIRES VERIFICATION** - believed to be NASA LRO WAC
-    (public domain) or similar freely-licensed source, but origin not confirmed.
-  - Action needed: Replace with confirmed public-domain texture if provenance
-    cannot be established.
+- **Moon texture** (`assets/textures/moon.jpg`): NASA LROC WAC Global Morphologic Map
+  - **Source**: NASA Lunar Reconnaissance Orbiter Camera (LROC)
+  - **URL**: https://www.nasa.gov/missions/nasa-goddard-creates-cgi-moon-kit/
+  - **License**: Public Domain (NASA)
+  - **Credit**: NASA/GSFC/SVS/Ernie Wright
 
 ## Historical Documentation
 

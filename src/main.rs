@@ -126,9 +126,9 @@ impl Default for TimeScale {
 }
 
 impl TimeScale {
-    pub const MIN: f32 = 0.25;
+    pub const MIN: f32 = 0.1;
     pub const MAX: f32 = 100.0;
-    pub const STEP: f32 = 0.25;
+    pub const STEP: f32 = 0.1;
     
     pub fn increase(&mut self) {
         self.multiplier = (self.multiplier + Self::STEP).min(Self::MAX);

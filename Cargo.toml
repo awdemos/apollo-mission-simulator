@@ -1,0 +1,29 @@
+[package]
+name = "apollo-mission-simulator"
+version = "0.1.0"
+edition = "2021"
+authors = ["ApolloSim Team"]
+description = "3D Apollo Mission Simulator based on original NASA documentation"
+
+[dependencies]
+bevy = { version = "0.14", features = ["dynamic_linking", "jpeg"] }
+bevy_egui = "0.29"
+nalgebra = "0.33"
+chrono = "0.4"
+anyhow = "1.0"
+thiserror = "2.0"
+tracing = "0.1"
+rand = "0.8"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[build-dependencies]
+cc = "1.0"
+
+[[bin]]
+name = "apollo-mim"
+path = "src/main.rs"

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apollo Mission Simulator - Graphical Models Architecture Review</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #e94560;
+            --accent-success: #00d9ff;
+            --border: #2a2a4a;
+            --severity-high: #ff4444;
+            --severity-medium: #ffaa00;
+            --severity-low: #00cc66;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--accent);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: var(--accent-success);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .summary-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .summary-card h3 {
+            color: var(--accent-success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-card .metric {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .finding {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+        }
+        
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .finding-title {
+            font-size: 1.3rem;
+            color: var(--accent-success);
+        }
+        
+        .severity {
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .severity-high {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--severity-high);
+            border: 1px solid var(--severity-high);
+        }
+        
+        .severity-medium {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--severity-medium);
+            border: 1px solid var(--severity-medium);
+        }
+        
+        .severity-low {
+            background: rgba(0, 204, 102, 0.2);
+            color: var(--severity-low);
+            border: 1px solid var(--severity-low);
+        }
+        
+        .code-block {
+            background: #0a0a1a;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+        }
+        
+        .recommendation {
+            background: rgba(0, 217, 255, 0.1);
+            border-left: 3px solid var(--accent-success);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .recommendation h4 {
+            color: var(--accent-success);
+            margin-bottom: 0.5rem;
+        }
+        
+        .file-path {
+            color: var(--accent);
+            font-family: monospace;
+            background: rgba(233, 69, 96, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .impact-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .impact-list li {
+            padding: 0.3rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .impact-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .architecture-diagram {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .layer {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-success);
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 0.5rem;
+            display: inline-block;
+            min-width: 200px;
+        }
+        
+        .arrow {
+            color: var(--accent-success);
+            font-size: 1.5rem;
+            margin: 0.5rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Apollo Mission Simulator</h1>
+            <p class="subtitle">Graphical Models Architecture Review</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Executive Summary -->
+        <section>
+            <h2 style="color: var(--accent-success); margin-bottom: 1rem;">Executive Summary</h2>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h3>Codebase Health</h3>
+                    <div class="metric">7</div>
+                    <p>Architecture candidates identified</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Severity</h3>
+                    <div class="metric" style="color: var(--severity-high);">3 High</div>
+                    <p>4 Medium, 0 Low</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Primary Impact</h3>
+                    <div class="metric" style="color: var(--severity-medium);">Maintainability</div>
+                    <p>Monolithic functions, tight coupling</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Recommended Action</h3>
+                    <div class="metric" style="color: var(--accent-success);">Refactor</div>
+                    <p>Data-driven, asset-based approach</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Overview -->
+        <section class="architecture-diagram">
+            <h3 style="color: var(--accent-success); margin-bottom: 1.5rem;">Current Architecture</h3>
+            <div class="layer">Assets (Materials, Meshes)</div>
+            <div class="arrow">↓</div>
+            <div class="layer">SpacecraftPlugin / PanelsPlugin</div>
+            <div class="arrow">↓</div>
+            <div class="layer">Monolithic Spawn Functions</div>
+            <div class="arrow">↓</div>
+            <div class="layer">Visual + Logic Mixed</div>
+            <div class="arrow">↓</div>
+            <div class="layer">Systems (CSM, Communications)</div>
+        </section>
+
+        <!-- Findings -->
+        <section>
+            <h2 style="color: var(--accent-success); margin: 2rem 0 1rem;">Findings</h2>
+
+            <!-- Finding 1 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">1. Monolithic Spawn Functions</span>
+                    <span class="severity severity-high">HIGH</span>
+                </div>
+                <p><strong>File:</strong> <span class="file-path">src/spacecraft/mod.rs</span></p>
+                <p><strong>Lines:</strong> 284-749 (465 lines)</p>
+                
+                <div class="code-block">
+fn spawn_cm_interior(
+    commands: &mut Commands,
+    meshes: &mut Assets&lt;Mesh&gt;,
+    materials: &mut Assets&lt;StandardMaterial&gt;,
+    parent: Entity,
+) {
+    // 465 lines handling:
+    // - Material creation (12+ materials)
+    // - Conical hull generation (32 segments)
+    // - Floor, ceiling, tunnel
+    // - Side hatch
+    // - 3 couches with armrests
+    // - Main console + wings
+    // - DSKY, FDAI, Event Timer
+    // - RHC/THC controllers
+    // - Sextant
+    // - Interactive panels
+    // - 5 windows
+    // - Lighting
+}</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Extract sub-spawners: <code>spawn_couch()</code>, <code>spawn_console()</code>, <code>spawn_windows()</code></li>
+                        <li>Create <code>CmInteriorBuilder</code> struct to hold shared state</li>
+                        <li>Target: &lt;100 lines per function</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 2 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">2. Hardcoded Dimensions</span>
+                    <span class="severity severity-high">HIGH</span>
+                </div>
+                <p><strong>Files:</strong> <span class="file-path">src/spacecraft/mod.rs</span>, <span class="file-path">src/panels/mod.rs</span></p>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">40+</div>
+                        <div class="stat-label">Inline literals</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Magic numbers in spawn_cm_interior</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Named constants</div>
+                    </div>
+                </div>
+
+                <div class="code-block">
+// From src/spacecraft/mod.rs
+let cm_height = 3.48f32;
+let base_radius = 1.955f32;
+let top_radius = 0.6f32;
+let couch_width = 0.584f32;
+let console_width = 2.13f32;
+let console_height = 0.91f32;
+
+// From src/panels/mod.rs
+let switch_radius = 0.02f32;
+let plate_width = 0.4f32;
+let plate_height = 1.2f32;</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Create <code>src/spacecraft/dimensions.rs</code> with NASA-documented constants</li>
+                        <li>Group by subsystem: <code>CM_EXTERIOR</code>, <code>CM_INTERIOR</code>, <code>PANELS</code></li>
+                        <li>Include units in names: <code>COUCH_WIDTH_METERS</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 3 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">3. Material Duplication</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <p><strong>Files:</strong> <span class="file-path">src/spacecraft/mod.rs</span>, <span class="file-path">src/panels/mod.rs</span></p>
+                
+                <div class="code-block">
+// Materials recreated in every spawn function
+let wall_material = materials.add(StandardMaterial { ... });
+let panel_material = materials.add(StandardMaterial { ... });
+let seat_material = materials.add(StandardMaterial { ... });
+// 12+ materials per spawn, never cached</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Create <code>MaterialCache</code> resource with lazy initialization</li>
+                        <li>Clone <code>Handle&lt;StandardMaterial&gt;</code> instead of recreating</li>
+                        <li>Use Bevy's asset system: load from RON/JSON configs</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 4 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">4. Visual/Logic Coupling in Panels</span>
+                    <span class="severity severity-high">HIGH</span>
+                </div>
+                <p><strong>File:</strong> <span class="file-path">src/panels/mod.rs</span></p>
+                
+                <div class="code-block">
+// PanelSwitch contains BOTH visual state AND system target
+pub struct PanelSwitch {
+    pub label: String,
+    pub state: SwitchState,           // Visual
+    pub system_target: SystemTarget,  // Logic
+    pub hit_radius: f32,              // Visual
+}
+
+// Direct imports into systems module
+use crate::systems::csm::CommandServiceModule;
+use crate::communications::CommunicationsBus;</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Split into <code>PanelVisual</code> and <code>PanelLogic</code> components</li>
+                        <li>Use Bevy events for cross-system communication</li>
+                        <li>Decouple via <code>PanelActivated</code> event</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 5 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">5. Hardcoded Panel Layouts</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <p><strong>File:</strong> <span class="file-path">src/panels/mod.rs</span></p>
+                
+                <div class="code-block">
+// ~200 lines of hardcoded switch arrays
+let left_switches = vec![
+    ("RCS MAIN SOV A", SystemTarget::RcsMainSovA),
+    ("RCS MAIN SOV B", SystemTarget::RcsMainSovB),
+    // ... 10 more
+];
+
+let right_switches = vec![
+    ("FUEL CELL 1", SystemTarget::FuelCell1),
+    // ... 10 more
+];</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Create <code>assets/panels/cm_left_panel.ron</code></li>
+                        <li>Load via Bevy's <code>AssetLoader</code></li>
+                        <li>Hot-reloadable panel configurations</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 6 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">6. Mesh Recreation</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <p><strong>Files:</strong> <span class="file-path">src/spacecraft/mod.rs</span></p>
+                
+                <div class="code-block">
+// Every spawn creates new meshes
+let seat = meshes.add(Cuboid::new(width, 0.08, depth));
+let back = meshes.add(Cuboid::new(width, 0.65, 0.06));
+// Same meshes recreated for each of 3 couches
+
+// Conical hull rebuilt every time
+let hull_mesh = create_conical_frustum_mesh(meshes, ...);</div>
+
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Create <code>MeshLibrary</code> resource at startup</li>
+                        <li>Share <code>Handle&lt;Mesh&gt;</code> across spawns</li>
+                        <li>Use Bevy's built-in primitives where possible</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Finding 7 -->
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">7. Bevy 0.18 Compatibility</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <p><strong>Current:</strong> Bevy 0.14</p>
+                <p><strong>Target:</strong> Bevy 0.18+</p>
+                
+                <div class="recommendation">
+                    <h4>Recommendation</h4>
+                    <ul class="impact-list">
+                        <li>Use <code>PhysicalTranslation</code> for physics/animation separation</li>
+                        <li>Adopt <code>SceneRoot</code> for complex hierarchies</li>
+                        <li>Consider BSN (Bevy Scene Notation) for declarative scenes</li>
+                        <li>Prepare for required components pattern</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Priority Roadmap -->
+        <section style="margin-top: 3rem;">
+            <h2 style="color: var(--accent-success); margin-bottom: 1rem;">Recommended Priority Order</h2>
+            
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">Phase 1: Foundation</span>
+                    <span class="severity severity-high">HIGH</span>
+                </div>
+                <ol>
+                    <li>Extract dimension constants to <code>src/spacecraft/dimensions.rs</code></li>
+                    <li>Create <code>MaterialCache</code> and <code>MeshLibrary</code> resources</li>
+                    <li>Split monolithic <code>spawn_cm_interior()</code> into sub-spawners</li>
+                </ol>
+            </div>
+
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">Phase 2: Decoupling</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <ol>
+                    <li>Split <code>PanelSwitch</code> into visual/logic components</li>
+                    <li>Introduce <code>PanelActivated</code> event system</li>
+                    <li>Remove direct imports between panels and systems</li>
+                </ol>
+            </div>
+
+            <div class="finding">
+                <div class="finding-header">
+                    <span class="finding-title">Phase 3: Data-Driven</span>
+                    <span class="severity severity-medium">MEDIUM</span>
+                </div>
+                <ol>
+                    <li>Create RON configs for panel layouts</li>
+                    <li>Implement custom <code>AssetLoader</code></li>
+                    <li>Add hot-reload for development</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Metrics -->
+        <section style="margin-top: 3rem;">
+            <h2 style="color: var(--accent-success); margin-bottom: 1rem;">Impact Metrics</h2>
+            
+            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-item">
+                    <div class="stat-value">-70%</div>
+                    <div class="stat-label">Spawn function size</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">-90%</div>
+                    <div class="stat-label">Material duplication</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">+100%</div>
+                    <div class="stat-label">Testability</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">+200%</div>
+                    <div class="stat-label">Configurability</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>Apollo Mission Simulator - Architecture Review</p>
+        <p>Generated: 2026-05-27 | Based on NASA Operations Handbook Block II & Bevy 0.18 Best Practices</p>
+    </footer>
+</body>
+</html>

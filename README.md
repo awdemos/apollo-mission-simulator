@@ -1,5 +1,7 @@
 # Apollo Mission Simulator
 
+> **WARNING: Very early, buggy experience awaits.**
+
 A 3D Apollo mission simulator built with Rust and the Bevy game engine. Features
 a historically accurate Command Module interior, interactive control panels, a
 real yaAGC-powered Apollo Guidance Computer, and realistic orbital mechanics.

@@ -7,7 +7,9 @@ pub struct PanelWiringPlugin;
 
 impl Plugin for PanelWiringPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, handle_panel_system_wiring);
+        app.init_resource::<MasterAlarmState>()
+            .add_systems(Update, handle_panel_system_wiring.run_if(in_state(crate::game_state::AppState::InGame)))
+            .add_systems(Update, handle_master_alarm.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 
@@ -118,5 +120,35 @@ fn apply_breaker_to_csm(csm: &mut CommandServiceModule, id: &BreakerId, closed: 
             }
         }
         _ => {}
+    }
+}
+
+#[derive(Resource, Default, Debug, Clone)]
+pub struct MasterAlarmState {
+    pub active: bool,
+    pub triggered_by: Option<String>,
+    pub acknowledged: bool,
+}
+
+fn handle_master_alarm(
+    master_alarm: Res<crate::game_state::MasterAlarm>,
+    mut alarm_state: ResMut<MasterAlarmState>,
+    mut mission_state: ResMut<crate::mission::MissionState>,
+) {
+    if master_alarm.is_changed() {
+        if master_alarm.active && !alarm_state.active {
+            let time_str = crate::mission::format_time(mission_state.mission_time);
+            let msg = if let Some(ref who) = master_alarm.triggered_by {
+                format!("MASTER ALARM: {} health critical", who)
+            } else {
+                "MASTER ALARM: Crew health critical".to_string()
+            };
+            mission_state.log.push(crate::mission::LogEntry {
+                time: time_str,
+                message: msg,
+            });
+        }
+        alarm_state.active = master_alarm.active;
+        alarm_state.triggered_by = master_alarm.triggered_by.clone();
     }
 }

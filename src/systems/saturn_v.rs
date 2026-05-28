@@ -6,7 +6,7 @@ pub struct SaturnVSystemsPlugin;
 impl Plugin for SaturnVSystemsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_saturn_v_systems)
-            .add_systems(Update, update_saturn_v_systems);
+            .add_systems(Update, update_saturn_v_systems.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 

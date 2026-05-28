@@ -12,12 +12,14 @@ impl Plugin for AgcPlugin {
         app.add_plugins(EguiPlugin)
             .init_resource::<AgcState>()
             .add_systems(Startup, init_virtual_agc)
-            .add_systems(Update, read_3d_dsky_keys.before(step_agc))
-            .add_systems(Update, step_agc)
-            .add_systems(Update, read_dsky_channels.after(step_agc))
-            .add_systems(Update, sync_agc_to_3d_dsky.after(read_dsky_channels))
-            .add_systems(Update, dsky_ui.after(EguiSet::InitContexts))
-            .add_systems(Update, debug_agc_dsky_sync);
+            .add_systems(Update, read_3d_dsky_keys.run_if(in_state(crate::game_state::AppState::InGame)).before(step_agc))
+            .add_systems(Update, step_agc.run_if(in_state(crate::game_state::AppState::InGame)))
+            .add_systems(Update, read_dsky_channels.run_if(in_state(crate::game_state::AppState::InGame)).after(step_agc))
+            .add_systems(Update, sync_agc_to_3d_dsky.run_if(in_state(crate::game_state::AppState::InGame)).after(read_dsky_channels))
+            .add_systems(Update, apply_agc_outputs.run_if(in_state(crate::game_state::AppState::InGame)).after(step_agc))
+            .add_systems(Update, manual_rcs_control.run_if(in_state(crate::game_state::AppState::InGame)))
+            .add_systems(Update, dsky_ui.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, debug_agc_dsky_sync.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 
@@ -36,6 +38,7 @@ pub struct AgcState {
     pub entry_mode: Option<EntryMode>,
     pub virtual_agc: Option<VirtualAgc>,
     pub key_buffer: Vec<DskyKey>,
+    pub manual_mode: bool,
 }
 
 impl Default for AgcState {
@@ -54,6 +57,7 @@ impl Default for AgcState {
             entry_mode: None,
             virtual_agc: None,
             key_buffer: Vec::new(),
+            manual_mode: false,
         }
     }
 }
@@ -114,12 +118,20 @@ fn init_virtual_agc(mut state: ResMut<AgcState>) {
     
     let bin_path = Path::new("assets/agc/Comanche055.bin");
     if bin_path.exists() {
-        match agc.load_binfile(bin_path) {
+        match agc.init(bin_path, None) {
             Ok(()) => {
-                info!("Loaded Comanche055 (Apollo 11 CM) AGC binary");
+                info!("Initialized Comanche055 (Apollo 11 CM) AGC");
             }
             Err(e) => {
-                warn!("Failed to load AGC binary: {}. Using fallback.", e);
+                warn!("Failed to initialize AGC engine: {}. Trying load_binfile fallback.", e);
+                match agc.load_binfile(bin_path) {
+                    Ok(()) => {
+                        info!("Loaded Comanche055 via load_binfile fallback");
+                    }
+                    Err(e2) => {
+                        warn!("Failed to load AGC binary: {}. Using fallback mode.", e2);
+                    }
+                }
             }
         }
     } else {
@@ -176,6 +188,115 @@ fn read_dsky_channels(mut state: ResMut<AgcState>) {
         state.annunciators.prog = (lights & 0o00200) != 0;
         state.annunciators.temp = (lights & 0o00400) != 0;
         state.annunciators.gimbal_lock = (lights & 0o01000) != 0;
+    }
+}
+
+fn apply_agc_outputs(
+    mut state: ResMut<AgcState>,
+    mut csm_query: Query<&mut crate::systems::csm::CommandServiceModule>,
+) {
+    if let Some(ref mut agc) = state.virtual_agc {
+        let ch5 = agc.read_io(5);
+        let ch6 = agc.read_io(6);
+        let ch14 = agc.read_io(14);
+
+        if let Ok(mut csm) = csm_query.get_single_mut() {
+            for quad_idx in 0..4 {
+                if quad_idx < csm.rcs.quads.len() {
+                    let base_bit = quad_idx * 4;
+                    for thruster_idx in 0..4 {
+                        let bit = base_bit + thruster_idx;
+                        let is_firing = if bit < 14 {
+                            (ch5 & (1 << bit)) != 0
+                        } else {
+                            (ch6 & (1 << (bit - 14))) != 0
+                        };
+
+                        if is_firing && csm.rcs.quads[quad_idx].enabled {
+                            csm.rcs.quads[quad_idx].thrusters[thruster_idx].fired_count += 1;
+                        }
+                    }
+                }
+            }
+
+            let sps_on = (ch14 & 0o00001) != 0;
+            if sps_on && csm.sps.engine.status == crate::systems::SystemStatus::Nominal {
+                csm.sps.thrust_newtons = csm.sps.engine.thrust_vac_newtons;
+            } else {
+                csm.sps.thrust_newtons = 0.0;
+            }
+        }
+    }
+}
+
+fn manual_rcs_control(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut state: ResMut<AgcState>,
+    mut csm_query: Query<&mut crate::systems::csm::CommandServiceModule>,
+    mut staging_events: EventWriter<crate::lvdc::ManualStagingEvent>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyM) {
+        state.manual_mode = !state.manual_mode;
+        info!("Manual RCS mode: {}", if state.manual_mode { "ON" } else { "OFF" });
+    }
+    
+    if keyboard.just_pressed(KeyCode::F1) {
+        staging_events.send(crate::lvdc::ManualStagingEvent { stage: 1, action: crate::lvdc::StagingAction::CutoffAndSeparate });
+        info!("STAGING: S-IC cutoff commanded");
+    }
+    if keyboard.just_pressed(KeyCode::F2) {
+        staging_events.send(crate::lvdc::ManualStagingEvent { stage: 2, action: crate::lvdc::StagingAction::Ignite });
+        info!("STAGING: S-II ignition commanded");
+    }
+    if keyboard.just_pressed(KeyCode::F3) {
+        staging_events.send(crate::lvdc::ManualStagingEvent { stage: 2, action: crate::lvdc::StagingAction::CutoffAndSeparate });
+        info!("STAGING: S-II cutoff commanded");
+    }
+    if keyboard.just_pressed(KeyCode::F4) {
+        staging_events.send(crate::lvdc::ManualStagingEvent { stage: 3, action: crate::lvdc::StagingAction::Ignite });
+        info!("STAGING: S-IVB ignition commanded");
+    }
+    if keyboard.just_pressed(KeyCode::F5) {
+        staging_events.send(crate::lvdc::ManualStagingEvent { stage: 3, action: crate::lvdc::StagingAction::Cutoff });
+        info!("STAGING: S-IVB cutoff commanded");
+    }
+    
+    if !state.manual_mode {
+        return;
+    }
+    
+    if let Ok(mut csm) = csm_query.get_single_mut() {
+        for quad_idx in 0..csm.rcs.quads.len() {
+            if !csm.rcs.quads[quad_idx].enabled {
+                continue;
+            }
+            for thruster_idx in 0..4 {
+                csm.rcs.quads[quad_idx].thrusters[thruster_idx].status = crate::systems::SystemStatus::Nominal;
+            }
+        }
+        
+        if keyboard.pressed(KeyCode::KeyI) {
+            if csm.rcs.quads.len() > 0 { csm.rcs.quads[0].thrusters[0].status = crate::systems::SystemStatus::Firing; }
+            if csm.rcs.quads.len() > 1 { csm.rcs.quads[1].thrusters[0].status = crate::systems::SystemStatus::Firing; }
+        }
+        if keyboard.pressed(KeyCode::KeyK) {
+            if csm.rcs.quads.len() > 0 { csm.rcs.quads[0].thrusters[1].status = crate::systems::SystemStatus::Firing; }
+            if csm.rcs.quads.len() > 1 { csm.rcs.quads[1].thrusters[1].status = crate::systems::SystemStatus::Firing; }
+        }
+        if keyboard.pressed(KeyCode::KeyJ) {
+            if csm.rcs.quads.len() > 2 { csm.rcs.quads[2].thrusters[2].status = crate::systems::SystemStatus::Firing; }
+            if csm.rcs.quads.len() > 3 { csm.rcs.quads[3].thrusters[2].status = crate::systems::SystemStatus::Firing; }
+        }
+        if keyboard.pressed(KeyCode::KeyL) {
+            if csm.rcs.quads.len() > 2 { csm.rcs.quads[2].thrusters[3].status = crate::systems::SystemStatus::Firing; }
+            if csm.rcs.quads.len() > 3 { csm.rcs.quads[3].thrusters[3].status = crate::systems::SystemStatus::Firing; }
+        }
+        
+        if keyboard.pressed(KeyCode::Space) {
+            if csm.sps.engine.status == crate::systems::SystemStatus::Nominal {
+                csm.sps.thrust_newtons = csm.sps.engine.thrust_vac_newtons * 0.1;
+            }
+        }
     }
 }
 
@@ -311,99 +432,193 @@ fn debug_agc_dsky_sync(
 fn dsky_ui(
     mut contexts: EguiContexts,
     mut state: ResMut<AgcState>,
+    camera_mode: Res<crate::CameraMode>,
+    mut panel_events: EventWriter<crate::panels::PanelInteraction>,
 ) {
-    egui::Window::new("DSKY - Apollo Guidance Computer")
+    if *camera_mode != crate::CameraMode::Interior {
+        return;
+    }
+    let ctx = contexts.ctx_mut();
+    let mut frame = egui::Frame::window(&ctx.style());
+    frame.fill = egui::Color32::from_rgb(28, 30, 26);
+    frame.stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(55, 58, 50));
+    frame.rounding = egui::Rounding::same(4.0);
+    frame.inner_margin = egui::Margin::same(12.0);
+
+    egui::Window::new("DSKY")
         .default_pos([10.0, 40.0])
-        .default_size([340.0, 520.0])
-        .show(contexts.ctx_mut(), |ui| {
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    ui.label("PROG");
-                    ui.label(format!("{:02}", state.program));
+        .default_size([360.0, 540.0])
+        .frame(frame)
+        .title_bar(false)
+        .resizable(false)
+        .show(ctx, |ui| {
+            let bezel_color = egui::Color32::from_rgb(35, 38, 32);
+            let display_bg = egui::Color32::from_rgb(10, 16, 12);
+            let glow_on = egui::Color32::from_rgb(80, 255, 160);
+            let glow_dim = egui::Color32::from_rgb(18, 35, 24);
+            let label_color = egui::Color32::from_rgb(160, 165, 150);
+            let font_mono = egui::FontId::monospace(22.0);
+            let font_small = egui::FontId::monospace(14.0);
+            let font_tiny = egui::FontId::monospace(11.0);
+
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    egui::RichText::new("APOLLO GUIDANCE COMPUTER")
+                        .font(font_tiny.clone())
+                        .color(label_color),
+                );
+            });
+
+            ui.add_space(8.0);
+
+            egui::Frame::none()
+                .fill(display_bg)
+                .rounding(egui::Rounding::same(3.0))
+                .inner_margin(egui::Margin::same(10.0))
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        dsky_field(ui, "PROG", &format!("{:02}", state.program), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
+                        dsky_field(ui, "VERB", &format!("{}{}", state.verb[0], state.verb[1]), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
+                        dsky_field(ui, "NOUN", &format!("{}{}", state.noun[0], state.noun[1]), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
+                    });
+
+                    ui.add_space(10.0);
+
+                    display_register_styled(ui, "R1", &state.r1, &font_mono, glow_on, glow_dim, label_color, &font_small);
+                    display_register_styled(ui, "R2", &state.r2, &font_mono, glow_on, glow_dim, label_color, &font_small);
+                    display_register_styled(ui, "R3", &state.r3, &font_mono, glow_on, glow_dim, label_color, &font_small);
                 });
-                ui.vertical(|ui| {
-                    ui.label("VERB");
-                    ui.label(format!("{}{}", state.verb[0], state.verb[1]));
+
+            ui.add_space(8.0);
+
+            egui::Frame::none()
+                .fill(bezel_color)
+                .rounding(egui::Rounding::same(3.0))
+                .inner_margin(egui::Margin::symmetric(6.0, 6.0))
+                .show(ui, |ui| {
+                    ui.horizontal_wrapped(|ui| {
+                        annunciator_light_styled(ui, "UPTM", state.annunciators.uplink_acty, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "NO ATT", state.annunciators.no_att, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "STBY", state.annunciators.stby, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "RESTART", state.annunciators.restart, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "KEY REL", state.annunciators.key_rel, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "OPR ERR", state.annunciators.opr_err, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "TEMP", state.annunciators.temp, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "GIMBAL", state.annunciators.gimbal_lock, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "TRACKER", state.annunciators.tracker, glow_on, glow_dim, &font_tiny);
+                        annunciator_light_styled(ui, "PROG", state.annunciators.prog, glow_on, glow_dim, &font_tiny);
+                    });
                 });
-                ui.vertical(|ui| {
-                    ui.label("NOUN");
-                    ui.label(format!("{}{}", state.noun[0], state.noun[1]));
-                });
-            });
 
-            ui.separator();
+            ui.add_space(8.0);
 
-            display_register(ui, "R1", &state.r1);
-            display_register(ui, "R2", &state.r2);
-            display_register(ui, "R3", &state.r3);
-
-            ui.separator();
-
-            ui.horizontal(|ui| {
-                annunciator_light(ui, "UPTM", state.annunciators.uplink_acty);
-                annunciator_light(ui, "NO ATT", state.annunciators.no_att);
-                annunciator_light(ui, "STBY", state.annunciators.stby);
-                annunciator_light(ui, "RESTART", state.annunciators.restart);
-            });
-            ui.horizontal(|ui| {
-                annunciator_light(ui, "KEY REL", state.annunciators.key_rel);
-                annunciator_light(ui, "OPR ERR", state.annunciators.opr_err);
-                annunciator_light(ui, "TEMP", state.annunciators.temp);
-            });
-            ui.horizontal(|ui| {
-                annunciator_light(ui, "GIMBAL", state.annunciators.gimbal_lock);
-                annunciator_light(ui, "TRACKER", state.annunciators.tracker);
-                annunciator_light(ui, "PROG", state.annunciators.prog);
-            });
-
-            ui.separator();
-
-            dsky_keyboard(ui, &mut state);
+            dsky_keyboard_styled(ui, &mut state, &mut panel_events);
         });
 }
 
-fn display_register(ui: &mut egui::Ui, label: &str, reg: &DisplayRegister) {
+fn dsky_field(
+    ui: &mut egui::Ui,
+    label: &str,
+    value: &str,
+    font: &egui::FontId,
+    glow_on: egui::Color32,
+    glow_dim: egui::Color32,
+    label_color: egui::Color32,
+    label_font: &egui::FontId,
+) {
+    ui.vertical(|ui| {
+        ui.label(egui::RichText::new(label).font(label_font.clone()).color(label_color));
+        ui.label(egui::RichText::new(value).font(font.clone()).color(glow_on).background_color(glow_dim));
+    });
+    ui.add_space(12.0);
+}
+
+fn display_register_styled(
+    ui: &mut egui::Ui,
+    label: &str,
+    reg: &DisplayRegister,
+    font: &egui::FontId,
+    glow_on: egui::Color32,
+    glow_dim: egui::Color32,
+    label_color: egui::Color32,
+    label_font: &egui::FontId,
+) {
     ui.horizontal(|ui| {
-        ui.label(format!("{}:", label));
-        ui.label(format!("{}", reg.sign));
+        ui.label(egui::RichText::new(format!("{}:", label)).font(label_font.clone()).color(label_color));
+        ui.label(egui::RichText::new(format!("{}", reg.sign)).font(font.clone()).color(glow_on));
         for d in &reg.digits {
-            ui.label(format!("{}", d));
+            let txt = if *d == 0 { "0".to_string() } else { format!("{}", d) };
+            ui.label(egui::RichText::new(txt).font(font.clone()).color(glow_on).background_color(glow_dim));
         }
     });
 }
 
-fn annunciator_light(ui: &mut egui::Ui, label: &str, lit: bool) {
-    let color = if lit {
-        egui::Color32::from_rgb(0, 255, 0)
+fn annunciator_light_styled(
+    ui: &mut egui::Ui,
+    label: &str,
+    lit: bool,
+    glow_on: egui::Color32,
+    glow_dim: egui::Color32,
+    font: &egui::FontId,
+) {
+    let (fg, bg) = if lit {
+        (glow_on, egui::Color32::from_rgb(20, 50, 30))
     } else {
-        egui::Color32::from_rgb(40, 40, 40)
+        (egui::Color32::from_rgb(45, 50, 42), glow_dim)
     };
-    ui.colored_label(color, label);
+    ui.add(egui::Label::new(
+        egui::RichText::new(label).font(font.clone()).color(fg).background_color(bg)
+    ).selectable(false));
+    ui.add_space(4.0);
 }
 
-fn dsky_keyboard(ui: &mut egui::Ui, state: &mut AgcState) {
-    let button_size = egui::vec2(60.0, 40.0);
+fn dsky_keyboard_styled(
+    ui: &mut egui::Ui,
+    state: &mut AgcState,
+    panel_events: &mut EventWriter<crate::panels::PanelInteraction>,
+) {
+    let button_size = egui::vec2(62.0, 36.0);
+    let key_font = egui::FontId::monospace(13.0);
+
+    let mut emit_click = |key_type: crate::panels::DskyKeyType| {
+        panel_events.send(crate::panels::PanelInteraction::KeyPressed(
+            Entity::PLACEHOLDER,
+            key_type,
+        ));
+    };
+
+    let key_btn = |ui: &mut egui::Ui, label: &str, size: egui::Vec2| -> egui::Response {
+        let btn = egui::Button::new(egui::RichText::new(label).font(key_font.clone()).color(egui::Color32::from_rgb(200, 200, 190)))
+            .fill(egui::Color32::from_rgb(45, 48, 40))
+            .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(65, 68, 58)))
+            .rounding(egui::Rounding::same(2.0));
+        ui.add_sized(size, btn)
+    };
 
     ui.horizontal(|ui| {
-        if ui.add_sized(button_size, egui::Button::new("VERB")).clicked() {
+        if key_btn(ui, "VERB", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Verb);
             state.key_buffer.push(DskyKey::Verb);
             state.is_verb_entry = true;
             state.is_noun_entry = false;
             state.current_entry.clear();
             state.entry_mode = Some(EntryMode::Verb);
         }
-        if ui.add_sized(button_size, egui::Button::new("NOUN")).clicked() {
+        if key_btn(ui, "NOUN", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Noun);
             state.key_buffer.push(DskyKey::Noun);
             state.is_verb_entry = false;
             state.is_noun_entry = true;
             state.current_entry.clear();
             state.entry_mode = Some(EntryMode::Noun);
         }
-        if ui.add_sized(button_size, egui::Button::new("+")).clicked() {
+        if key_btn(ui, "+", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Plus);
             state.key_buffer.push(DskyKey::Plus);
             handle_key(state, b'+');
         }
-        if ui.add_sized(button_size, egui::Button::new("-")).clicked() {
+        if key_btn(ui, "-", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Minus);
             state.key_buffer.push(DskyKey::Minus);
             handle_key(state, b'-');
         }
@@ -413,7 +628,8 @@ fn dsky_keyboard(ui: &mut egui::Ui, state: &mut AgcState) {
         ui.horizontal(|ui| {
             for col in 0..3 {
                 let num = row * 3 + col + 1;
-                if ui.add_sized(button_size, egui::Button::new(format!("{}", num))).clicked() {
+                if key_btn(ui, &format!("{}", num), button_size).clicked() {
+                    emit_click(crate::panels::DskyKeyType::Number(num as u8));
                     let key = match num {
                         1 => DskyKey::One,
                         2 => DskyKey::Two,
@@ -434,11 +650,13 @@ fn dsky_keyboard(ui: &mut egui::Ui, state: &mut AgcState) {
     }
 
     ui.horizontal(|ui| {
-        if ui.add_sized(button_size, egui::Button::new("0")).clicked() {
+        if key_btn(ui, "0", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Number(0));
             state.key_buffer.push(DskyKey::Zero);
             handle_key(state, b'0');
         }
-        if ui.add_sized(button_size, egui::Button::new("CLR")).clicked() {
+        if key_btn(ui, "CLR", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Clear);
             state.key_buffer.push(DskyKey::Clear);
             state.current_entry.clear();
             if let Some(EntryMode::Verb) = state.entry_mode {
@@ -447,22 +665,26 @@ fn dsky_keyboard(ui: &mut egui::Ui, state: &mut AgcState) {
                 state.noun = [0, 0];
             }
         }
-        if ui.add_sized(button_size, egui::Button::new("ENTR")).clicked() {
+        if key_btn(ui, "ENTR", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Enter);
             state.key_buffer.push(DskyKey::Enter);
             process_entry(state);
         }
     });
 
     ui.horizontal(|ui| {
-        if ui.add_sized(button_size, egui::Button::new("RSET")).clicked() {
+        if key_btn(ui, "RSET", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Reset);
             state.key_buffer.push(DskyKey::Reset);
             reset_dsky(state);
         }
-        if ui.add_sized(button_size, egui::Button::new("PRO")).clicked() {
+        if key_btn(ui, "PRO", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::Pro);
             state.key_buffer.push(DskyKey::Proceed);
             state.annunciators.key_rel = false;
         }
-        if ui.add_sized(button_size, egui::Button::new("KEY REL")).clicked() {
+        if key_btn(ui, "KEY REL", button_size).clicked() {
+            emit_click(crate::panels::DskyKeyType::KeyRel);
             state.annunciators.key_rel = false;
             state.current_entry.clear();
             state.is_verb_entry = false;

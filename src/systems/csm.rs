@@ -5,8 +5,7 @@ pub struct CsmSystemsPlugin;
 
 impl Plugin for CsmSystemsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_csm_systems)
-            .add_systems(Update, update_csm_systems);
+        app.add_systems(Update, update_csm_systems.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 

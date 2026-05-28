@@ -296,7 +296,11 @@ pub fn update_environmental_control_system(ecs: &mut EnvironmentalControlSystem,
         if tank.status != SystemStatus::Failed && tank.remaining_kg > 0.0 {
             let draw = o2_consumption_kg.min(tank.remaining_kg);
             tank.remaining_kg -= draw;
-            tank.pressure_psi = (tank.remaining_kg / tank.capacity_kg) * 900.0;
+            if tank.capacity_kg > 0.0 {
+                tank.pressure_psi = (tank.remaining_kg / tank.capacity_kg) * 900.0;
+            } else {
+                tank.pressure_psi = 0.0;
+            }
             if tank.pressure_psi < 100.0 {
                 tank.status = SystemStatus::Warning;
             }
@@ -319,8 +323,12 @@ pub fn update_environmental_control_system(ecs: &mut EnvironmentalControlSystem,
                 .max(0.0);
             co2_removed += removal;
             canister.hours_used += dt / 3600.0;
-            canister.saturation_pct = (canister.hours_used / canister.replacement_hours * 100.0)
-                .min(100.0);
+            if canister.replacement_hours > 0.0 {
+                canister.saturation_pct = (canister.hours_used / canister.replacement_hours * 100.0)
+                    .min(100.0);
+            } else {
+                canister.saturation_pct = 100.0;
+            }
             if canister.saturation_pct >= 100.0 {
                 canister.active = false;
             }

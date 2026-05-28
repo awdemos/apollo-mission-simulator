@@ -13,9 +13,10 @@ impl Plugin for PanelsPlugin {
                 animate_switch_positions,
                 update_panel_lights,
                 handle_dsky_input,
+                update_comp_acty_timer,
                 update_event_timer,
                 debug_panel_count,
-            ));
+            ).run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 
@@ -68,6 +69,7 @@ pub struct DskyDisplay {
     pub r2_sign: DskySign,
     pub r3_sign: DskySign,
     pub comp_acty: bool,
+    pub comp_acty_timer: f32,
     pub lights: DskyStatusLights,
     pub keyboard_buffer: Vec<DskyKeyType>,
     pub entering_verb: bool,
@@ -124,6 +126,7 @@ impl Default for DskyDisplay {
             r2_sign: DskySign::Blank,
             r3_sign: DskySign::Blank,
             comp_acty: false,
+            comp_acty_timer: 0.0,
             lights: DskyStatusLights::default(),
             keyboard_buffer: Vec::new(),
             entering_verb: false,
@@ -628,7 +631,7 @@ pub mod connectors {
 fn handle_panel_clicks(
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera3d>>,
     mut switch_query: Query<(Entity, &mut PanelSwitch, &GlobalTransform)>,
     mut breaker_query: Query<(Entity, &mut CircuitBreaker, &GlobalTransform)>,
     mut button_query: Query<(Entity, &mut PushButton, &GlobalTransform)>,
@@ -643,7 +646,7 @@ fn handle_panel_clicks(
     let window = windows.single();
     let Some(cursor_pos) = window.cursor_position() else { return };
 
-    let (camera, camera_transform) = camera_query.single();
+    let Ok((camera, camera_transform)) = camera_query.get_single() else { return };
     let Some(ray) = camera.viewport_to_world(camera_transform, cursor_pos) else { return };
 
     let max_distance = 5.0;
@@ -1125,6 +1128,23 @@ fn handle_dsky_input(
         if let PanelInteraction::KeyPressed(_, _key_type) = event {
             for mut dsky in dsky_query.iter_mut() {
                 dsky.comp_acty = true;
+                dsky.comp_acty_timer = 0.5;
+            }
+        }
+    }
+}
+
+fn update_comp_acty_timer(
+    time: Res<Time>,
+    mut dsky_query: Query<&mut DskyDisplay>,
+) {
+    let dt = time.delta_seconds();
+    for mut dsky in dsky_query.iter_mut() {
+        if dsky.comp_acty_timer > 0.0 {
+            dsky.comp_acty_timer -= dt;
+            if dsky.comp_acty_timer <= 0.0 {
+                dsky.comp_acty = false;
+                dsky.comp_acty_timer = 0.0;
             }
         }
     }

@@ -20,7 +20,7 @@ impl Plugin for FaultsPlugin {
                 generate_ground_control_advice,
                 process_player_repair_actions,
                 update_difficulty_progression,
-            ).chain());
+            ).chain().run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 

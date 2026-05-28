@@ -69,6 +69,15 @@ pub struct VirtualAgc {
     dsky: DskyTracker,
 }
 
+impl Drop for VirtualAgc {
+    fn drop(&mut self) {
+        if !self.state.is_null() {
+            unsafe { agc_state_free(self.state) };
+            self.state = std::ptr::null_mut();
+        }
+    }
+}
+
 impl VirtualAgc {
     pub fn new() -> Self {
         let ptr = unsafe { agc_state_alloc() };

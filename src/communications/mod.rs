@@ -15,7 +15,7 @@ impl Plugin for CommunicationsPlugin {
                 simulate_communications_hardware,
                 update_pll_tracking,
                 update_usb_multiplexer,
-            ));
+            ).run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 

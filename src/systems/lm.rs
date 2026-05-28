@@ -6,7 +6,7 @@ pub struct LmSystemsPlugin;
 impl Plugin for LmSystemsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_lm_systems)
-            .add_systems(Update, update_lm_systems);
+            .add_systems(Update, update_lm_systems.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 

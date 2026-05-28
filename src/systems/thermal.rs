@@ -171,7 +171,7 @@ pub fn update_thermal_control_system(tcs: &mut ThermalControlSystem, dt: f32, el
     let electrical_heat_load = electrical_power_kw * 1000.0 * 3.4;
 
     for loop_system in &mut tcs.glycol_loops {
-        if loop_system.pump_active {
+        if loop_system.pump_active && loop_system.flow_rate_lb_hr > 0.0 {
             let temp_rise = electrical_heat_load / (loop_system.flow_rate_lb_hr * 0.9);
             loop_system.inlet_temp_f = loop_system.outlet_temp_f + temp_rise * 0.1 * dt;
             loop_system.inlet_temp_f = loop_system.inlet_temp_f.clamp(30.0, 120.0);
@@ -201,31 +201,35 @@ pub fn update_thermal_control_system(tcs: &mut ThermalControlSystem, dt: f32, el
     tcs.cabin_temp_control.control_valve_position = ((cabin_temp_error / 50.0) + 0.5).clamp(0.0, 1.0);
 
     let coldplate_count = tcs.equipment_cooling.coldplates.len();
-    for coldplate in &mut tcs.equipment_cooling.coldplates {
-        if coldplate.status != SystemStatus::Failed {
-            let heat_per_plate = electrical_heat_load / coldplate_count as f32;
-            let temp_rise = heat_per_plate / (coldplate.coolant_flow_lb_hr * 0.9);
-            coldplate.equipment_temp_f += temp_rise * 0.01 * dt;
-            coldplate.equipment_temp_f = coldplate.equipment_temp_f.clamp(60.0, 200.0);
+    if coldplate_count > 0 {
+        for coldplate in &mut tcs.equipment_cooling.coldplates {
+            if coldplate.status != SystemStatus::Failed && coldplate.coolant_flow_lb_hr > 0.0 {
+                let heat_per_plate = electrical_heat_load / coldplate_count as f32;
+                let temp_rise = heat_per_plate / (coldplate.coolant_flow_lb_hr * 0.9);
+                coldplate.equipment_temp_f += temp_rise * 0.01 * dt;
+                coldplate.equipment_temp_f = coldplate.equipment_temp_f.clamp(60.0, 200.0);
 
-            if coldplate.equipment_temp_f > 150.0 {
-                coldplate.status = SystemStatus::Warning;
-            }
-            if coldplate.equipment_temp_f > 180.0 {
-                coldplate.status = SystemStatus::Critical;
+                if coldplate.equipment_temp_f > 150.0 {
+                    coldplate.status = SystemStatus::Warning;
+                }
+                if coldplate.equipment_temp_f > 180.0 {
+                    coldplate.status = SystemStatus::Critical;
+                }
             }
         }
     }
 
     let glycol_loop_count = tcs.glycol_loops.len();
-    for loop_system in &mut tcs.glycol_loops {
-        if loop_system.pump_active {
-            let cooling_effect = (total_radiator_rejection
-                + tcs.evaporators.iter().map(|e| e.heat_removal_btu_hr).sum::<f32>())
-                / glycol_loop_count as f32;
-            let temp_drop = cooling_effect / (loop_system.flow_rate_lb_hr * 0.9);
-            loop_system.outlet_temp_f = loop_system.inlet_temp_f - temp_drop * 0.1 * dt;
-            loop_system.outlet_temp_f = loop_system.outlet_temp_f.clamp(35.0, 100.0);
+    if glycol_loop_count > 0 {
+        for loop_system in &mut tcs.glycol_loops {
+            if loop_system.pump_active && loop_system.flow_rate_lb_hr > 0.0 {
+                let cooling_effect = (total_radiator_rejection
+                    + tcs.evaporators.iter().map(|e| e.heat_removal_btu_hr).sum::<f32>())
+                    / glycol_loop_count as f32;
+                let temp_drop = cooling_effect / (loop_system.flow_rate_lb_hr * 0.9);
+                loop_system.outlet_temp_f = loop_system.inlet_temp_f - temp_drop * 0.1 * dt;
+                loop_system.outlet_temp_f = loop_system.outlet_temp_f.clamp(35.0, 100.0);
+            }
         }
     }
 }

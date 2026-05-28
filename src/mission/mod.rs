@@ -6,8 +6,8 @@ impl Plugin for MissionPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MissionState>()
             .add_event::<MissionActionEvent>()
-            .add_systems(Update, update_mission_timer)
-            .add_systems(Update, handle_mission_actions);
+            .add_systems(Update, update_mission_timer.run_if(in_state(crate::game_state::AppState::InGame)))
+            .add_systems(Update, handle_mission_actions.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 
@@ -223,9 +223,6 @@ fn handle_mission_actions(
                 });
             }
             "ignition" => {
-                for mut spacecraft in spacecraft_query.iter_mut() {
-                    spacecraft.velocity = Vec3::new(0.0, 50.0, 0.0);
-                }
                 for mut saturn in saturn_query.iter_mut() {
                     crate::systems::saturn_v::ignite_s_ic(&mut saturn);
                 }

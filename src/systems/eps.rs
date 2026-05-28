@@ -292,16 +292,18 @@ pub fn update_electrical_system(eps: &mut ElectricalSystem, dt: f32) {
     if load > fuel_cell_power {
         let deficit = load - fuel_cell_power;
         let battery_count = eps.batteries.len();
-        for battery in &mut eps.batteries {
-            if battery.status != SystemStatus::Failed && battery.charge_pct > 0.0 {
-                let discharge_rate = (deficit / battery_count as f32) * 100.0 / battery.capacity_ah * dt / 3600.0;
-                battery.charge_pct -= discharge_rate;
-                if battery.charge_pct < 10.0 {
-                    battery.status = SystemStatus::Warning;
-                }
-                if battery.charge_pct <= 0.0 {
-                    battery.status = SystemStatus::Failed;
-                    battery.charge_pct = 0.0;
+        if battery_count > 0 {
+            for battery in &mut eps.batteries {
+                if battery.status != SystemStatus::Failed && battery.charge_pct > 0.0 && battery.capacity_ah > 0.0 {
+                    let discharge_rate = (deficit / battery_count as f32) * 100.0 / battery.capacity_ah * dt / 3600.0;
+                    battery.charge_pct -= discharge_rate;
+                    if battery.charge_pct < 10.0 {
+                        battery.status = SystemStatus::Warning;
+                    }
+                    if battery.charge_pct <= 0.0 {
+                        battery.status = SystemStatus::Failed;
+                        battery.charge_pct = 0.0;
+                    }
                 }
             }
         }

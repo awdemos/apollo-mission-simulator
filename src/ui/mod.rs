@@ -1,3 +1,5 @@
+pub mod menu;
+
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiSet};
 use crate::mission::{MissionState, format_time, get_apollo11, get_apollo13, MissionActionEvent};
@@ -11,13 +13,13 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiState>()
-            .add_systems(Update, top_menu_bar.after(EguiSet::InitContexts))
-            .add_systems(Update, telemetry_panel.after(EguiSet::InitContexts))
-            .add_systems(Update, mission_panel.after(EguiSet::InitContexts))
-            .add_systems(Update, dsky_panel.after(EguiSet::InitContexts))
-            .add_systems(Update, radio_panel.after(EguiSet::InitContexts))
-            .add_systems(Update, planning_panel.after(EguiSet::InitContexts))
-            .add_systems(Update, log_panel.after(EguiSet::InitContexts));
+            .add_systems(Update, top_menu_bar.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, telemetry_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, mission_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, radio_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, planning_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, log_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, camera_mode_keyboard.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
 
@@ -25,7 +27,6 @@ impl Plugin for UiPlugin {
 pub struct UiState {
     pub show_telemetry: bool,
     pub show_mission: bool,
-    pub show_dsky: bool,
     pub show_radio: bool,
     pub show_planning: bool,
     pub show_log: bool,
@@ -38,6 +39,7 @@ fn top_menu_bar(
     mut mission_state: ResMut<MissionState>,
     mut camera_mode: ResMut<crate::CameraMode>,
     mut time_scale: ResMut<crate::TimeScale>,
+    mut next_state: ResMut<NextState<crate::game_state::AppState>>,
 ) {
     let time_str = format_time(mission_state.mission_time);
     let mission_id = mission_state.mission_id.clone();
@@ -52,7 +54,6 @@ fn top_menu_bar(
 
             toggle(ui, "Telemetry", &mut ui_state.show_telemetry);
             toggle(ui, "Mission", &mut ui_state.show_mission);
-            toggle(ui, "DSKY", &mut ui_state.show_dsky);
             toggle(ui, "Radio", &mut ui_state.show_radio);
             toggle(ui, "Planning", &mut ui_state.show_planning);
             toggle(ui, "Log", &mut ui_state.show_log);
@@ -80,16 +81,23 @@ fn top_menu_bar(
 
             ui.separator();
 
-            if ui.button("Start Mission").clicked() {
-                mission_state.is_running = true;
-                mission_state.log.push(crate::mission::LogEntry {
-                    time: time_str.clone(),
-                    message: format!("Mission {} started", mission_id),
-                });
+            if mission_state.is_running {
+                if ui.button("⏹ Stop Timer").clicked() {
+                    mission_state.is_running = false;
+                }
+            } else {
+                if ui.button("▶ Start Timer").clicked() {
+                    mission_state.is_running = true;
+                    mission_state.log.push(crate::mission::LogEntry {
+                        time: time_str.clone(),
+                        message: format!("Mission {} timer started", mission_id),
+                    });
+                }
             }
 
-            if ui.button("Stop").clicked() {
+            if ui.button("⏸ Pause Game").clicked() {
                 mission_state.is_running = false;
+                next_state.set(crate::game_state::AppState::Paused);
             }
 
             ui.separator();
@@ -100,17 +108,21 @@ fn top_menu_bar(
 
             ui.separator();
 
-            if ui.button("-").clicked() {
-                time_scale.decrease();
-            }
-            ui.label(format!("{:.0}%", time_scale.multiplier * 100.0));
-            if ui.button("+").clicked() {
-                time_scale.increase();
-            }
+            ui.label(egui::RichText::new(&time_str).strong().color(egui::Color32::YELLOW));
 
             ui.separator();
 
-            ui.label(egui::RichText::new(&time_str).strong().color(egui::Color32::YELLOW));
+            ui.label("Time:");
+            if ui.button("◄").clicked() {
+                time_scale.decrease();
+            }
+            ui.label(format!("{:.1}x", time_scale.multiplier));
+            if ui.button("►").clicked() {
+                time_scale.increase();
+            }
+            if ui.button("Reset").clicked() {
+                time_scale.multiplier = 1.0;
+            }
         });
     });
 }
@@ -143,6 +155,15 @@ fn telemetry_panel(
                 });
             }
         });
+}
+
+fn camera_mode_keyboard(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut camera_mode: ResMut<crate::CameraMode>,
+) {
+    if keyboard.just_pressed(KeyCode::Tab) {
+        *camera_mode = camera_mode.next();
+    }
 }
 
 fn mission_panel(
@@ -202,34 +223,6 @@ fn mission_panel(
         });
 }
 
-fn dsky_panel(
-    mut contexts: EguiContexts,
-    ui_state: Res<UiState>,
-    agc_state: Res<AgcState>,
-) {
-    if !ui_state.show_dsky {
-        return;
-    }
-
-    egui::Window::new("DSKY Status")
-        .default_pos([340.0, 40.0])
-        .default_size([200.0, 150.0])
-        .show(contexts.ctx_mut(), |ui| {
-            ui.label(format!("Program: {}", agc_state.program));
-            ui.label(format!("Verb: {}{}", agc_state.verb[0], agc_state.verb[1]));
-            ui.label(format!("Noun: {}{}", agc_state.noun[0], agc_state.noun[1]));
-            ui.separator();
-            ui.label("R1:");
-            ui.label(format!("{} {}{}{}{}{}",
-                agc_state.r1.sign,
-                agc_state.r1.digits[0],
-                agc_state.r1.digits[1],
-                agc_state.r1.digits[2],
-                agc_state.r1.digits[3],
-                agc_state.r1.digits[4],
-            ));
-        });
-}
 
 fn radio_panel(
     mut contexts: EguiContexts,

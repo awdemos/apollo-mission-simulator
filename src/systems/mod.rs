@@ -131,6 +131,7 @@ pub enum SystemStatus {
     Critical,
     Failed,
     Off,
+    Firing,
 }
 
 impl SystemStatus {
@@ -142,6 +143,7 @@ impl SystemStatus {
             SystemStatus::Critical => "CRITICAL",
             SystemStatus::Failed => "FAILED",
             SystemStatus::Off => "OFF",
+            SystemStatus::Firing => "FIRING",
         }
     }
 }

@@ -1062,7 +1062,8 @@ fn spawn_saturn_v(
 
     });
 
-    spawn_cm_interior(commands, meshes, materials, _cache, saturn_v);
+    let interior = spawn_cm_interior(commands, meshes, materials, _cache, saturn_v);
+    crate::cm_equipment::spawn_equipment_bays(commands, meshes, materials, interior);
 }
 pub fn spawn_command_module(
     commands: &mut Commands,
@@ -1265,7 +1266,7 @@ fn spawn_cm_interior(
     materials: &mut Assets<StandardMaterial>,
     cache: &CmMeshCache,
     parent: Entity,
-) {
+) -> Entity {
     use crate::config::*;
     
     let material_cache = CmMaterialCache {
@@ -1370,6 +1371,8 @@ fn spawn_cm_interior(
         
         crate::panels::spawn_electrical_connectors(parent, meshes, materials);
     });
+    
+    interior
 }
 
 fn spawn_hull(

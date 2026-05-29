@@ -25,6 +25,7 @@ mod solar_system;
 mod staging_animation;
 mod damage;
 mod effects;
+mod cm_equipment;
 
 use bevy::prelude::*;
 use bevy::window::{Cursor, WindowResolution};
@@ -70,7 +71,8 @@ fn main() {
     .add_plugins(solar_system::SolarSystemPlugin)
     .add_plugins(staging_animation::StagingAnimationPlugin)
         .add_plugins(damage::DamagePlugin)
-        .add_plugins(effects::EngineEffectsPlugin)
+            .add_plugins(effects::EngineEffectsPlugin)
+            .add_plugins(cm_equipment::CmEquipmentPlugin)
         .add_systems(Update, cooling::update_cooling_systems.run_if(in_state(crate::game_state::AppState::InGame)))
         .add_systems(Startup, unlock_cursor_on_startup)
         .add_systems(Update, update_orbit_camera.run_if(in_state(game_state::AppState::InGame).and_then(is_orbit_mode)))

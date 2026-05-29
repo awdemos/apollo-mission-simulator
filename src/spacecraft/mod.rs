@@ -1274,6 +1274,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.55, 0.53, 0.50),
             metallic: 0.0,
             perceptual_roughness: 0.85,
+            emissive: LinearRgba::new(0.08, 0.07, 0.06, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1281,6 +1282,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.28, 0.28, 0.30),
             metallic: 0.1,
             perceptual_roughness: 0.5,
+            emissive: LinearRgba::new(0.04, 0.04, 0.05, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1302,6 +1304,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.22, 0.22, 0.22),
             metallic: 0.0,
             perceptual_roughness: 0.3,
+            emissive: LinearRgba::new(0.02, 0.06, 0.04, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1712,6 +1715,17 @@ fn spawn_interior_lighting(parent: &mut ChildBuilder) {
             ..default()
         },
         transform: Transform::from_xyz(0.0, CEILING_Y * 0.7, 0.0),
+        ..default()
+    });
+    parent.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 100_000.0,
+            color: Color::srgb(0.85, 0.85, 0.80),
+            range: 10.0,
+            shadows_enabled: false,
+            ..default()
+        },
+        transform: Transform::from_xyz(0.0, FLOOR_Y + 0.8, 0.4),
         ..default()
     });
 }

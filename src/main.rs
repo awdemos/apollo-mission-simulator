@@ -191,7 +191,9 @@ pub fn update_orbit_camera(
     mut query: Query<(&mut Transform, &mut OrbitCamera), With<Camera3d>>,
     spacecraft_query: Query<&Transform, (With<crate::spacecraft::PlayerVehicle>, Without<Camera3d>)>,
     launch_site_pos: Res<crate::world::LaunchSitePosition>,
+    mut clear_color: ResMut<ClearColor>,
 ) {
+    clear_color.0 = Color::srgb(0.55, 0.70, 0.88);
     let orbit_speed = 0.005;
     let zoom_speed = 2.0;
 
@@ -275,9 +277,11 @@ pub fn update_interior_camera(
     spacecraft_query: Query<&Transform, (With<crate::spacecraft::PlayerVehicle>, Without<Camera3d>)>,
     interior_query: Query<&Transform, (With<crate::spacecraft::CmInterior>, Without<Camera3d>)>,
     mut windows: Query<&mut Window>,
+    mut clear_color: ResMut<ClearColor>,
 ) {
     let look_speed = crate::config::CAMERA_LOOK_SPEED;
     let move_speed = crate::config::CAMERA_MOVE_SPEED;
+    clear_color.0 = Color::srgb(0.02, 0.02, 0.03);
 
     let motions: Vec<_> = mouse_motion.read().collect();
 

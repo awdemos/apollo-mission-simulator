@@ -442,88 +442,37 @@ fn debug_agc_dsky_sync(
 
 fn dsky_ui(
     mut contexts: EguiContexts,
-    mut state: ResMut<AgcState>,
+    state: Res<AgcState>,
     camera_mode: Res<crate::CameraMode>,
-    mut panel_events: EventWriter<crate::panels::PanelInteraction>,
 ) {
     if *camera_mode != crate::CameraMode::Interior {
         return;
     }
     let ctx = contexts.ctx_mut();
-    let mut frame = egui::Frame::window(&ctx.style());
-    frame.fill = egui::Color32::from_rgb(28, 30, 26);
-    frame.stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(55, 58, 50));
-    frame.rounding = egui::Rounding::same(4.0);
-    frame.inner_margin = egui::Margin::same(8.0);
 
-    egui::Window::new("DSKY")
-        .default_pos([1320.0, 150.0])
-        .default_size([280.0, 400.0])
-        .frame(frame)
-        .title_bar(false)
-        .resizable(false)
+    egui::TopBottomPanel::bottom("dsky_status")
+        .exact_height(28.0)
+        .frame(egui::Frame::none()
+            .fill(egui::Color32::from_rgba_unmultiplied(10, 14, 12, 200))
+            .inner_margin(egui::Margin::symmetric(8.0, 4.0)))
         .show(ctx, |ui| {
-            let bezel_color = egui::Color32::from_rgb(35, 38, 32);
-            let display_bg = egui::Color32::from_rgb(10, 16, 12);
-            let glow_on = egui::Color32::from_rgb(80, 255, 160);
-            let glow_dim = egui::Color32::from_rgb(18, 35, 24);
-            let label_color = egui::Color32::from_rgb(160, 165, 150);
-            let font_mono = egui::FontId::monospace(16.0);
-            let font_small = egui::FontId::monospace(11.0);
-            let font_tiny = egui::FontId::monospace(9.0);
-
-            ui.vertical_centered(|ui| {
-                ui.label(
-                    egui::RichText::new("APOLLO GUIDANCE COMPUTER")
-                        .font(font_tiny.clone())
-                        .color(label_color),
-                );
+            let glow = egui::Color32::from_rgb(80, 255, 160);
+            let dim = egui::Color32::from_rgb(120, 125, 115);
+            let font = egui::FontId::monospace(13.0);
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new(format!("PROG {:02}", state.program)).font(font.clone()).color(glow));
+                ui.separator();
+                ui.label(egui::RichText::new(format!("VERB {}{}", state.verb[0], state.verb[1])).font(font.clone()).color(glow));
+                ui.separator();
+                ui.label(egui::RichText::new(format!("NOUN {}{}", state.noun[0], state.noun[1])).font(font.clone()).color(glow));
+                ui.separator();
+                let fmt_reg = |r: &DisplayRegister| format!("{}{:05}", r.sign, r.digits[0] as u32*10000+r.digits[1] as u32*1000+r.digits[2] as u32*100+r.digits[3] as u32*10+r.digits[4] as u32);
+                ui.label(egui::RichText::new(format!("R1 {}", fmt_reg(&state.r1))).font(font.clone()).color(dim));
+                ui.separator();
+                ui.label(egui::RichText::new(format!("R2 {}", fmt_reg(&state.r2))).font(font.clone()).color(dim));
+                ui.separator();
+                ui.label(egui::RichText::new(format!("R3 {}", fmt_reg(&state.r3))).font(font.clone()).color(dim));
             });
-
-            ui.add_space(4.0);
-
-            egui::Frame::none()
-                .fill(display_bg)
-                .rounding(egui::Rounding::same(3.0))
-                .inner_margin(egui::Margin::same(6.0))
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        dsky_field(ui, "PROG", &format!("{:02}", state.program), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
-                        dsky_field(ui, "VERB", &format!("{}{}", state.verb[0], state.verb[1]), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
-                        dsky_field(ui, "NOUN", &format!("{}{}", state.noun[0], state.noun[1]), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
-                    });
-
-                    ui.add_space(6.0);
-
-                    display_register_styled(ui, "R1", &state.r1, &font_mono, glow_on, glow_dim, label_color, &font_small);
-                    display_register_styled(ui, "R2", &state.r2, &font_mono, glow_on, glow_dim, label_color, &font_small);
-                    display_register_styled(ui, "R3", &state.r3, &font_mono, glow_on, glow_dim, label_color, &font_small);
-                });
-
-            ui.add_space(4.0);
-
-            egui::Frame::none()
-                .fill(bezel_color)
-                .rounding(egui::Rounding::same(3.0))
-                .inner_margin(egui::Margin::symmetric(4.0, 4.0))
-                .show(ui, |ui| {
-                    ui.horizontal_wrapped(|ui| {
-                        annunciator_light_styled(ui, "UPTM", state.annunciators.uplink_acty, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "NO ATT", state.annunciators.no_att, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "STBY", state.annunciators.stby, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "RESTART", state.annunciators.restart, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "KEY REL", state.annunciators.key_rel, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "OPR ERR", state.annunciators.opr_err, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "TEMP", state.annunciators.temp, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "GIMBAL", state.annunciators.gimbal_lock, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "TRACKER", state.annunciators.tracker, glow_on, glow_dim, &font_tiny);
-                        annunciator_light_styled(ui, "PROG", state.annunciators.prog, glow_on, glow_dim, &font_tiny);
-                    });
-                });
-
-            ui.add_space(4.0);
-
-            dsky_keyboard_styled(ui, &mut state, &mut panel_events);
         });
 }
 

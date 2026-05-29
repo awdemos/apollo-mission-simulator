@@ -1321,7 +1321,7 @@ fn spawn_cm_interior(
             ..default()
         })),
         window: Some(materials.add(StandardMaterial {
-            base_color: Color::srgba(0.4, 0.6, 0.85, 0.35),
+            base_color: Color::srgba(0.4, 0.6, 0.85, 0.25),
             metallic: 0.0,
             perceptual_roughness: 0.05,
             alpha_mode: AlphaMode::Blend,
@@ -1371,7 +1371,7 @@ fn spawn_cm_interior(
         spawn_hull(parent, meshes, m(&material_cache.wall), m(&material_cache.heat_shield), m(&material_cache.tunnel));
         spawn_furniture(parent, cache, m(&material_cache.seat), m(&material_cache.switch));
         spawn_console(parent, meshes, materials, m(&material_cache.panel), m(&material_cache.panel_highlight), m(&material_cache.dsky), m(&material_cache.fdai), m(&material_cache.display_glow));
-        spawn_windows(parent, meshes, m(&material_cache.window));
+        spawn_windows(parent, meshes, materials, m(&material_cache.window));
         spawn_interior_lighting(parent);
         
         crate::panels::spawn_historical_panels(
@@ -1602,36 +1602,88 @@ fn spawn_console(
 fn spawn_windows(
     parent: &mut ChildBuilder,
     meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
     window_mat: Handle<StandardMaterial>,
 ) {
     use crate::config::*;
     
+    let frame_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.15, 0.15, 0.17),
+        metallic: 0.8,
+        perceptual_roughness: 0.4,
+        cull_mode: None,
+        ..default()
+    });
+    let bezel_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.08, 0.08, 0.09),
+        metallic: 0.5,
+        perceptual_roughness: 0.6,
+        cull_mode: None,
+        ..default()
+    });
+    
     let rendezvous_radius = get_conical_radius_at_height(CM_BASE_RADIUS, CM_TOP_RADIUS, FLOOR_Y, CEILING_Y, RENDEZVOUS_WINDOW_Y);
     for side in [-1.0f32, 1.0] {
-        let window_frame = meshes.add(Cuboid::new(RENDEZVOUS_WINDOW_WIDTH, RENDEZVOUS_WINDOW_HEIGHT, 0.04));
         let angle = side * RENDEZVOUS_WINDOW_ANGLE_DEG.to_radians();
         let wx = angle.cos() * rendezvous_radius;
         let wz = angle.sin() * rendezvous_radius - 0.1;
+        let window_xform = Transform::from_xyz(wx, RENDEZVOUS_WINDOW_Y, wz)
+            .with_rotation(Quat::from_rotation_y(angle));
+        
+        let frame = meshes.add(Cuboid::new(RENDEZVOUS_WINDOW_WIDTH + 0.08, RENDEZVOUS_WINDOW_HEIGHT + 0.08, 0.06));
+        parent.spawn(PbrBundle {
+            mesh: frame,
+            material: frame_mat.clone(),
+            transform: window_xform,
+            ..default()
+        });
+        
+        let bezel = meshes.add(Cuboid::new(RENDEZVOUS_WINDOW_WIDTH + 0.03, RENDEZVOUS_WINDOW_HEIGHT + 0.03, 0.08));
+        parent.spawn(PbrBundle {
+            mesh: bezel,
+            material: bezel_mat.clone(),
+            transform: window_xform,
+            ..default()
+        });
+        
+        let window_frame = meshes.add(Cuboid::new(RENDEZVOUS_WINDOW_WIDTH, RENDEZVOUS_WINDOW_HEIGHT, 0.04));
         parent.spawn(PbrBundle {
             mesh: window_frame,
             material: window_mat.clone(),
-            transform: Transform::from_xyz(wx, RENDEZVOUS_WINDOW_Y, wz)
-                .with_rotation(Quat::from_rotation_y(angle)),
+            transform: window_xform,
             ..default()
         });
     }
 
     let side_radius = get_conical_radius_at_height(CM_BASE_RADIUS, CM_TOP_RADIUS, FLOOR_Y, CEILING_Y, SIDE_WINDOW_Y);
     for side in [-1.0f32, 1.0] {
-        let window_frame = meshes.add(Cuboid::new(0.04, SIDE_WINDOW_SIZE, SIDE_WINDOW_SIZE));
         let angle = side * std::f32::consts::FRAC_PI_2;
         let wx = angle.cos() * side_radius;
         let wz = angle.sin() * side_radius;
+        let window_xform = Transform::from_xyz(wx, SIDE_WINDOW_Y, wz)
+            .with_rotation(Quat::from_rotation_y(angle));
+        
+        let frame = meshes.add(Cuboid::new(0.06, SIDE_WINDOW_SIZE + 0.08, SIDE_WINDOW_SIZE + 0.08));
+        parent.spawn(PbrBundle {
+            mesh: frame,
+            material: frame_mat.clone(),
+            transform: window_xform,
+            ..default()
+        });
+        
+        let bezel = meshes.add(Cuboid::new(0.08, SIDE_WINDOW_SIZE + 0.03, SIDE_WINDOW_SIZE + 0.03));
+        parent.spawn(PbrBundle {
+            mesh: bezel,
+            material: bezel_mat.clone(),
+            transform: window_xform,
+            ..default()
+        });
+        
+        let window_frame = meshes.add(Cuboid::new(0.04, SIDE_WINDOW_SIZE, SIDE_WINDOW_SIZE));
         parent.spawn(PbrBundle {
             mesh: window_frame,
             material: window_mat.clone(),
-            transform: Transform::from_xyz(wx, SIDE_WINDOW_Y, wz)
-                .with_rotation(Quat::from_rotation_y(angle)),
+            transform: window_xform,
             ..default()
         });
     }

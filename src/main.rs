@@ -35,7 +35,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Apollo Mission Simulator".to_string(),
-                resolution: WindowResolution::new(1920.0, 1080.0),
+                resolution: WindowResolution::new(1600.0, 900.0),
                 cursor: Cursor {
                     visible: true,
                     grab_mode: bevy::window::CursorGrabMode::None,

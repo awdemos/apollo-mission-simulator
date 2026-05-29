@@ -44,13 +44,24 @@ pub struct AgcState {
 impl Default for AgcState {
     fn default() -> Self {
         Self {
-            program: 0,
-            verb: [0, 0],
-            noun: [0, 0],
-            r1: DisplayRegister::default(),
-            r2: DisplayRegister::default(),
-            r3: DisplayRegister::default(),
-            annunciators: Annunciators::default(),
+            program: 11,           // P11 - Monitor IMU Standby
+            verb: [1, 6],          // V16 - Monitor display
+            noun: [3, 6],          // N36 - IMU angles
+            r1: DisplayRegister { sign: '+', digits: [0, 0, 0, 4, 5] },
+            r2: DisplayRegister { sign: '+', digits: [0, 0, 1, 7, 2] },
+            r3: DisplayRegister { sign: '+', digits: [0, 0, 0, 0, 0] },
+            annunciators: Annunciators {
+                uplink_acty: false,
+                no_att: false,
+                stby: false,
+                restart: false,
+                key_rel: false,
+                opr_err: false,
+                temp: false,
+                gimbal_lock: false,
+                tracker: false,
+                prog: true,
+            },
             is_verb_entry: false,
             is_noun_entry: false,
             current_entry: Vec::new(),
@@ -443,11 +454,11 @@ fn dsky_ui(
     frame.fill = egui::Color32::from_rgb(28, 30, 26);
     frame.stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(55, 58, 50));
     frame.rounding = egui::Rounding::same(4.0);
-    frame.inner_margin = egui::Margin::same(12.0);
+    frame.inner_margin = egui::Margin::same(8.0);
 
     egui::Window::new("DSKY")
-        .default_pos([10.0, 40.0])
-        .default_size([360.0, 540.0])
+        .default_pos([1320.0, 150.0])
+        .default_size([280.0, 400.0])
         .frame(frame)
         .title_bar(false)
         .resizable(false)
@@ -457,9 +468,9 @@ fn dsky_ui(
             let glow_on = egui::Color32::from_rgb(80, 255, 160);
             let glow_dim = egui::Color32::from_rgb(18, 35, 24);
             let label_color = egui::Color32::from_rgb(160, 165, 150);
-            let font_mono = egui::FontId::monospace(22.0);
-            let font_small = egui::FontId::monospace(14.0);
-            let font_tiny = egui::FontId::monospace(11.0);
+            let font_mono = egui::FontId::monospace(16.0);
+            let font_small = egui::FontId::monospace(11.0);
+            let font_tiny = egui::FontId::monospace(9.0);
 
             ui.vertical_centered(|ui| {
                 ui.label(
@@ -469,12 +480,12 @@ fn dsky_ui(
                 );
             });
 
-            ui.add_space(8.0);
+            ui.add_space(4.0);
 
             egui::Frame::none()
                 .fill(display_bg)
                 .rounding(egui::Rounding::same(3.0))
-                .inner_margin(egui::Margin::same(10.0))
+                .inner_margin(egui::Margin::same(6.0))
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
                         dsky_field(ui, "PROG", &format!("{:02}", state.program), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
@@ -482,19 +493,19 @@ fn dsky_ui(
                         dsky_field(ui, "NOUN", &format!("{}{}", state.noun[0], state.noun[1]), &font_mono, glow_on, glow_dim, label_color, &font_tiny);
                     });
 
-                    ui.add_space(10.0);
+                    ui.add_space(6.0);
 
                     display_register_styled(ui, "R1", &state.r1, &font_mono, glow_on, glow_dim, label_color, &font_small);
                     display_register_styled(ui, "R2", &state.r2, &font_mono, glow_on, glow_dim, label_color, &font_small);
                     display_register_styled(ui, "R3", &state.r3, &font_mono, glow_on, glow_dim, label_color, &font_small);
                 });
 
-            ui.add_space(8.0);
+            ui.add_space(4.0);
 
             egui::Frame::none()
                 .fill(bezel_color)
                 .rounding(egui::Rounding::same(3.0))
-                .inner_margin(egui::Margin::symmetric(6.0, 6.0))
+                .inner_margin(egui::Margin::symmetric(4.0, 4.0))
                 .show(ui, |ui| {
                     ui.horizontal_wrapped(|ui| {
                         annunciator_light_styled(ui, "UPTM", state.annunciators.uplink_acty, glow_on, glow_dim, &font_tiny);
@@ -510,7 +521,7 @@ fn dsky_ui(
                     });
                 });
 
-            ui.add_space(8.0);
+            ui.add_space(4.0);
 
             dsky_keyboard_styled(ui, &mut state, &mut panel_events);
         });
@@ -530,7 +541,7 @@ fn dsky_field(
         ui.label(egui::RichText::new(label).font(label_font.clone()).color(label_color));
         ui.label(egui::RichText::new(value).font(font.clone()).color(glow_on).background_color(glow_dim));
     });
-    ui.add_space(12.0);
+    ui.add_space(8.0);
 }
 
 fn display_register_styled(
@@ -569,7 +580,7 @@ fn annunciator_light_styled(
     ui.add(egui::Label::new(
         egui::RichText::new(label).font(font.clone()).color(fg).background_color(bg)
     ).selectable(false));
-    ui.add_space(4.0);
+    ui.add_space(2.0);
 }
 
 fn dsky_keyboard_styled(
@@ -577,8 +588,8 @@ fn dsky_keyboard_styled(
     state: &mut AgcState,
     panel_events: &mut EventWriter<crate::panels::PanelInteraction>,
 ) {
-    let button_size = egui::vec2(62.0, 36.0);
-    let key_font = egui::FontId::monospace(13.0);
+    let button_size = egui::vec2(48.0, 28.0);
+    let key_font = egui::FontId::monospace(10.0);
 
     let mut emit_click = |key_type: crate::panels::DskyKeyType| {
         panel_events.send(crate::panels::PanelInteraction::KeyPressed(

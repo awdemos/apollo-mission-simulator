@@ -273,6 +273,7 @@ pub fn update_interior_camera(
     mut mouse_motion: EventReader<bevy::input::mouse::MouseMotion>,
     mut query: Query<(&mut Transform, &mut InteriorCamera), With<Camera3d>>,
     spacecraft_query: Query<&Transform, (With<crate::spacecraft::PlayerVehicle>, Without<Camera3d>)>,
+    interior_query: Query<&Transform, (With<crate::spacecraft::CmInterior>, Without<Camera3d>)>,
     mut windows: Query<&mut Window>,
 ) {
     let look_speed = crate::config::CAMERA_LOOK_SPEED;
@@ -282,6 +283,14 @@ pub fn update_interior_camera(
 
     for (mut transform, mut interior) in query.iter_mut() {
         if let Ok(spacecraft_transform) = spacecraft_query.get_single() {
+            let interior_transform = interior_query.get_single();
+            let interior_y = interior_transform.as_ref().map(|t| t.translation.y).unwrap_or(crate::config::CM_CENTER_OFFSET);
+            bevy::log::info_once!(
+                "INTERIOR DEBUG: interior_y={}, spacecraft_pos={}, cam_offset=({}, {}, {}), CM_CENTER_OFFSET={}",
+                interior_y, spacecraft_transform.translation,
+                interior.position_offset.x, interior.position_offset.y, interior.position_offset.z,
+                crate::config::CM_CENTER_OFFSET
+            );
             let rocket_up = spacecraft_transform.rotation * Vec3::Y;
             let rocket_forward = spacecraft_transform.rotation * Vec3::Z;
             let rocket_right = spacecraft_transform.rotation * Vec3::X;
@@ -423,7 +432,7 @@ pub fn update_interior_camera(
                 else { interior.position_offset.z = console.z + console_half.z * dz.signum(); }
             }
             
-            let cm_origin = spacecraft_transform.translation + rocket_up * crate::config::CM_CENTER_OFFSET * crate::config::SATURN_V_SCALE;
+            let cm_origin = spacecraft_transform.translation + rocket_up * interior_y;
             let world_pos = cm_origin 
                 + rocket_up * interior.position_offset.y
                 + rocket_forward * interior.position_offset.z

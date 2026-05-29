@@ -6,7 +6,7 @@ authors = ["ApolloSim Team"]
 description = "3D Apollo Mission Simulator based on original NASA documentation"
 
 [dependencies]
-bevy = { version = "0.14", features = ["default", "dynamic_linking", "jpeg"] }
+bevy = { version = "0.14", features = ["default", "dynamic_linking", "jpeg", "wav", "flac", "mp3"] }
 bevy_egui = "0.29"
 nalgebra = "0.33"
 chrono = "0.4"

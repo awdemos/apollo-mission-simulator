@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::ButtonState, input::keyboard::{KeyboardInput, Key}, prelude::*};
 
 pub struct MenuPlugin;
 
@@ -1096,8 +1096,7 @@ fn menu_keyboard_activation(
 }
 
 fn menu_text_input(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut char_events: EventReader<ReceivedCharacter>,
+    mut key_events: EventReader<KeyboardInput>,
     mut text_input_query: Query<&mut TextInput>,
     mut mission_config: ResMut<crate::game_state::MissionConfig>,
 ) {
@@ -1106,17 +1105,24 @@ fn menu_text_input(
             continue;
         }
 
-        for event in char_events.read() {
-            if event.char.len() == 1 {
-                let ch = event.char.chars().next().unwrap();
-                if ch.is_ascii() && !ch.is_control() {
-                    text_input.value.push(ch);
-                }
+        for event in key_events.read() {
+            if event.state != ButtonState::Pressed {
+                continue;
             }
-        }
-
-        if keyboard.just_pressed(KeyCode::Backspace) {
-            text_input.value.pop();
+            match &event.logical_key {
+                Key::Character(ch) => {
+                    if ch.is_ascii() && ch.len() == 1 && !ch.chars().next().unwrap().is_control() {
+                        text_input.value.push_str(ch);
+                    }
+                }
+                Key::Space => {
+                    text_input.value.push(' ');
+                }
+                Key::Backspace => {
+                    text_input.value.pop();
+                }
+                _ => {}
+            }
         }
 
         match text_input.field {

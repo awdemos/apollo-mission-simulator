@@ -255,9 +255,11 @@ fn spawn_game_world(
                 exterior_offset: Vec3::new(12.0, 2.0, 8.0),
             },
             crate::InteriorCamera {
-                yaw: 0.0,
+                yaw: std::f32::consts::PI,
                 pitch: 0.0,
-                position_offset: Vec3::new(0.0, 0.35, 0.2),
+                // Center couch eye-level: y=1.05 unscaled (0.105 scaled), z=-0.2 unscaled (-0.02 scaled)
+                // Looking -Z toward console at z=-0.095 scaled (~75cm away unscaled)
+                position_offset: Vec3::new(0.0, 0.105, -0.02),
             },
             GameWorldEntity,
         ));

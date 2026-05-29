@@ -1271,40 +1271,45 @@ fn spawn_cm_interior(
     
     let material_cache = CmMaterialCache {
         wall: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.62, 0.6, 0.58),
+            base_color: Color::srgb(0.55, 0.53, 0.50),
             metallic: 0.0,
-            perceptual_roughness: 0.8,
+            perceptual_roughness: 0.85,
             cull_mode: None,
             ..default()
         })),
         panel: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.35, 0.35, 0.38),
-            metallic: 0.0,
+            base_color: Color::srgb(0.28, 0.28, 0.30),
+            metallic: 0.1,
             perceptual_roughness: 0.5,
+            cull_mode: None,
             ..default()
         })),
         panel_highlight: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.45, 0.45, 0.48),
-            metallic: 0.0,
+            base_color: Color::srgb(0.40, 0.40, 0.42),
+            metallic: 0.1,
             perceptual_roughness: 0.6,
+            cull_mode: None,
             ..default()
         })),
         seat: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.35, 0.38, 0.42),
+            base_color: Color::srgb(0.25, 0.22, 0.18),
             metallic: 0.0,
             perceptual_roughness: 0.95,
+            cull_mode: None,
             ..default()
         })),
         dsky: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.3, 0.3, 0.3),
+            base_color: Color::srgb(0.22, 0.22, 0.22),
             metallic: 0.0,
             perceptual_roughness: 0.3,
+            cull_mode: None,
             ..default()
         })),
         fdai: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.25, 0.25, 0.25),
+            base_color: Color::srgb(0.18, 0.18, 0.18),
             metallic: 0.0,
             perceptual_roughness: 0.4,
+            cull_mode: None,
             ..default()
         })),
         display_glow: Some(materials.add(StandardMaterial {
@@ -1312,13 +1317,15 @@ fn spawn_cm_interior(
             emissive: LinearRgba::new(0.25, 0.75, 0.50, 1.0),
             metallic: 0.0,
             perceptual_roughness: 0.2,
+            cull_mode: None,
             ..default()
         })),
         window: Some(materials.add(StandardMaterial {
-            base_color: Color::srgba(0.5, 0.7, 0.9, 0.25),
+            base_color: Color::srgba(0.4, 0.6, 0.85, 0.35),
             metallic: 0.0,
             perceptual_roughness: 0.05,
             alpha_mode: AlphaMode::Blend,
+            cull_mode: None,
             ..default()
         })),
         switch: Some(materials.add(StandardMaterial {
@@ -1326,18 +1333,21 @@ fn spawn_cm_interior(
             metallic: 1.0,
             perceptual_roughness: 0.3,
             emissive: LinearRgba::new(0.03, 0.03, 0.03, 0.1),
+            cull_mode: None,
             ..default()
         })),
         tunnel: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.5, 0.5, 0.52),
+            base_color: Color::srgb(0.45, 0.45, 0.47),
             metallic: 0.0,
             perceptual_roughness: 0.6,
+            cull_mode: None,
             ..default()
         })),
         heat_shield: Some(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.45, 0.35, 0.25),
+            base_color: Color::srgb(0.40, 0.30, 0.20),
             metallic: 0.0,
             perceptual_roughness: 0.9,
+            cull_mode: None,
             ..default()
         })),
     };
@@ -1672,7 +1682,6 @@ fn create_conical_frustum_mesh(
     let slope = (base_radius - top_radius) / height;
     let angle_step = std::f32::consts::TAU / segments as f32;
     
-    // Generate vertices for bottom and top rings
     for i in 0..=segments {
         let angle = i as f32 * angle_step;
         let cos = angle.cos();
@@ -1680,28 +1689,25 @@ fn create_conical_frustum_mesh(
         
         // Bottom ring
         vertices.push([base_radius * cos, bottom_y, base_radius * sin]);
-        let bottom_normal = Vec3::new(cos, slope, sin).normalize();
-        normals.push([bottom_normal.x, bottom_normal.y, bottom_normal.z]);
+        let inward_normal = Vec3::new(-cos, slope, -sin).normalize();
+        normals.push([inward_normal.x, inward_normal.y, inward_normal.z]);
         uvs.push([i as f32 / segments as f32, 0.0]);
         
         // Top ring
         vertices.push([top_radius * cos, top_y, top_radius * sin]);
-        let top_normal = Vec3::new(cos, slope, sin).normalize();
-        normals.push([top_normal.x, top_normal.y, top_normal.z]);
+        let inward_normal = Vec3::new(-cos, slope, -sin).normalize();
+        normals.push([inward_normal.x, inward_normal.y, inward_normal.z]);
         uvs.push([i as f32 / segments as f32, 1.0]);
     }
     
-    // Generate indices for triangles
     for i in 0..segments {
         let base = i * 2;
-        // First triangle
         indices.push(base);
+        indices.push(base + 2);
+        indices.push(base + 1);
         indices.push(base + 1);
         indices.push(base + 2);
-        // Second triangle
-        indices.push(base + 1);
         indices.push(base + 3);
-        indices.push(base + 2);
     }
     
     let mut mesh = Mesh::new(

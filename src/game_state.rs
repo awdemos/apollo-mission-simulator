@@ -38,6 +38,7 @@ impl Plugin for GameStatePlugin {
 pub struct MissionConfig {
     pub mission_id: String,
     pub difficulty: Difficulty,
+    pub houston_mode: HoustonMode,
     pub commander_name: String,
     pub cmp_name: String,
     pub lmp_name: String,
@@ -48,6 +49,7 @@ impl Default for MissionConfig {
         Self {
             mission_id: "apollo11".to_string(),
             difficulty: Difficulty::Normal,
+            houston_mode: HoustonMode::default(),
             commander_name: String::new(),
             cmp_name: String::new(),
             lmp_name: String::new(),
@@ -89,6 +91,36 @@ impl Difficulty {
             Difficulty::Hard => "Realistic fault rates, partial ground control",
             Difficulty::Realistic => "Historical accuracy, comm blackouts, no HUD assistance",
         }
+    }
+}
+
+/// Houston Radio mode for LLM-enhanced ground control dialogue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HoustonMode {
+    /// Scripted dialogue only (no LLM).
+    #[default]
+    Classic,
+    /// LLM-enhanced Houston responses via OpenAI-compatible API.
+    Enhanced,
+}
+
+impl HoustonMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HoustonMode::Classic => "CLASSIC",
+            HoustonMode::Enhanced => "ENHANCED",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            HoustonMode::Classic => "Classic",
+            HoustonMode::Enhanced => "Enhanced",
+        }
+    }
+
+    pub fn enhanced_available() -> bool {
+        std::env::var("HOUSTON_LLM_API_KEY").is_ok()
     }
 }
 

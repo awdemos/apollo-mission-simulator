@@ -7,18 +7,21 @@ use crate::agc::AgcState;
 use crate::spacecraft::Spacecraft;
 use crate::communications::{CommunicationsBus, GroundControlState, CommMode, voice_loop_name, ground_station_name, DataRate};
 use crate::planning::{MissionPlan, PlanStatus, validate_launch_plan, validate_flight_path, validate_return_plan};
+use crate::npc::{NpcDialogueEvent, NpcCharacter, DialogueUrgency, PlayerRadioMessage};
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiState>()
+            .init_resource::<RadioMessageLog>()
             .add_systems(Update, top_menu_bar.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
             .add_systems(Update, telemetry_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
             .add_systems(Update, mission_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
             .add_systems(Update, radio_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
             .add_systems(Update, planning_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
             .add_systems(Update, log_panel.run_if(in_state(crate::game_state::AppState::InGame)).after(EguiSet::InitContexts))
+            .add_systems(Update, collect_radio_messages.run_if(in_state(crate::game_state::AppState::InGame)))
             .add_systems(Update, camera_mode_keyboard.run_if(in_state(crate::game_state::AppState::InGame)));
     }
 }
@@ -31,6 +34,56 @@ pub struct UiState {
     pub show_planning: bool,
     pub show_log: bool,
     pub selected_mission: String,
+    pub radio_input: String,
+}
+
+#[derive(Resource)]
+pub struct RadioMessageLog {
+    pub messages: Vec<RadioMessage>,
+    pub max_messages: usize,
+}
+
+pub struct RadioMessage {
+    pub speaker: String,
+    pub text: String,
+    pub urgency: DialogueUrgency,
+    pub mission_time: f64,
+}
+
+impl Default for RadioMessageLog {
+    fn default() -> Self {
+        Self {
+            messages: Vec::new(),
+            max_messages: 50,
+        }
+    }
+}
+
+fn collect_radio_messages(
+    mut dialogue_events: EventReader<NpcDialogueEvent>,
+    mut log: ResMut<RadioMessageLog>,
+    mission_state: Res<MissionState>,
+) {
+    for event in dialogue_events.read() {
+        let speaker = match &event.speaker {
+            NpcCharacter::Capcom => "CAPCOM".to_string(),
+            NpcCharacter::FlightDirector => "FLIGHT".to_string(),
+            NpcCharacter::Fido => "FIDO".to_string(),
+            NpcCharacter::Guido => "GUIDO".to_string(),
+            NpcCharacter::Eecom => "EECOM".to_string(),
+            NpcCharacter::Surgeon => "SURGEON".to_string(),
+            NpcCharacter::CrewMember(role) => format!("{:?}", role),
+        };
+        log.messages.push(RadioMessage {
+            speaker,
+            text: event.message.clone(),
+            urgency: event.urgency.clone(),
+            mission_time: mission_state.mission_time,
+        });
+        if log.messages.len() > log.max_messages {
+            log.messages.remove(0);
+        }
+    }
 }
 
 fn top_menu_bar(
@@ -226,9 +279,11 @@ fn mission_panel(
 
 fn radio_panel(
     mut contexts: EguiContexts,
-    ui_state: Res<UiState>,
+    mut ui_state: ResMut<UiState>,
     comms: Res<CommunicationsBus>,
     ground: Res<GroundControlState>,
+    radio_log: Res<RadioMessageLog>,
+    mut radio_events: EventWriter<PlayerRadioMessage>,
 ) {
     if !ui_state.show_radio {
         return;
@@ -236,7 +291,7 @@ fn radio_panel(
 
     egui::Window::new("Radio Interface")
         .default_pos([340.0, 200.0])
-        .default_size([300.0, 250.0])
+        .default_size([350.0, 450.0])
         .show(contexts.ctx_mut(), |ui| {
             ui.heading("Ground Control");
             ui.separator();
@@ -305,8 +360,54 @@ fn radio_panel(
             });
             
             ui.separator();
-            ui.heading("Voice Loop");
-            ui.label(voice_loop_name(ground.active_loop));
+            ui.horizontal(|ui| {
+                ui.heading("Voice Loop");
+                ui.label(voice_loop_name(ground.active_loop));
+            });
+
+            ui.separator();
+            ui.heading("Houston Radio");
+
+            egui::ScrollArea::vertical()
+                .max_height(180.0)
+                .stick_to_bottom(true)
+                .show(ui, |ui| {
+                    for msg in &radio_log.messages {
+                        let time_str = format_time(msg.mission_time);
+                        let color = match &msg.urgency {
+                            DialogueUrgency::Routine => egui::Color32::from_rgb(180, 200, 220),
+                            DialogueUrgency::Advisory => egui::Color32::from_rgb(220, 220, 140),
+                            DialogueUrgency::Urgent => egui::Color32::from_rgb(255, 180, 80),
+                            DialogueUrgency::Emergency => egui::Color32::from_rgb(255, 80, 80),
+                        };
+                        ui.horizontal(|ui| {
+                            ui.colored_label(egui::Color32::GRAY, format!("[{}]", time_str));
+                            ui.colored_label(
+                                egui::Color32::from_rgb(140, 180, 255),
+                                format!("{}:", msg.speaker),
+                            );
+                            ui.colored_label(color, &msg.text);
+                        });
+                    }
+                });
+
+            ui.separator();
+            let response = ui.horizontal(|ui| {
+                ui.label("TX:");
+                let text_edit = egui::TextEdit::singleline(&mut ui_state.radio_input)
+                    .desired_width(ui.available_width() - 60.0)
+                    .hint_text("Type message to Houston...");
+                ui.add(text_edit)
+            });
+
+            if ui.button("SEND").clicked() || (response.inner.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))) {
+                if !ui_state.radio_input.is_empty() {
+                    radio_events.send(PlayerRadioMessage {
+                        text: ui_state.radio_input.clone(),
+                    });
+                    ui_state.radio_input.clear();
+                }
+            }
         });
 }
 

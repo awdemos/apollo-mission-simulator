@@ -30,7 +30,8 @@ impl Plugin for MenuPlugin {
             .add_systems(Update, update_text_input_display.run_if(in_state(crate::game_state::AppState::MissionSetup)))
             .add_systems(Update, update_launch_button_state.run_if(in_state(crate::game_state::AppState::MissionSetup)))
             .add_systems(Update, update_mission_selector_state.run_if(in_state(crate::game_state::AppState::MissionSetup)))
-            .add_systems(Update, update_difficulty_selector_state.run_if(in_state(crate::game_state::AppState::MissionSetup)));
+            .add_systems(Update, update_difficulty_selector_state.run_if(in_state(crate::game_state::AppState::MissionSetup)))
+        .add_systems(Update, update_houston_selector_state.run_if(in_state(crate::game_state::AppState::MissionSetup)));
     }
 }
 
@@ -90,6 +91,7 @@ enum MenuAction {
     ReturnToMenu,
     SelectMission(String),
     SelectDifficulty(crate::game_state::Difficulty),
+    SelectHoustonMode(crate::game_state::HoustonMode),
     ShowSavedGames,
     ShowComputerOptions,
     CloseOverlay,
@@ -326,6 +328,9 @@ fn spawn_mission_setup(
     let difficulty_label = spawn_text(&mut commands, &font_regular, "Difficulty", 16.0, ACCENT_COLOR);
     let difficulty_row = spawn_difficulty_selector(&mut commands, &font, &font_regular, mission_config.difficulty);
 
+    let houston_label = spawn_text(&mut commands, &font_regular, "Houston Radio", 16.0, ACCENT_COLOR);
+    let houston_row = spawn_houston_selector(&mut commands, &font, &font_regular, mission_config.houston_mode);
+
     let crew_label = spawn_text(&mut commands, &font_regular, "Crew", 16.0, ACCENT_COLOR);
 
     let cdr_input = spawn_text_input(
@@ -360,6 +365,8 @@ fn spawn_mission_setup(
             mission_row,
             difficulty_label,
             difficulty_row,
+            houston_label,
+            houston_row,
             crew_label,
             cdr_input,
             cmp_input,
@@ -925,6 +932,85 @@ fn spawn_difficulty_selector(
     row
 }
 
+fn spawn_houston_selector(
+    commands: &mut Commands,
+    font: &Handle<Font>,
+    font_regular: &Handle<Font>,
+    selected: crate::game_state::HoustonMode,
+) -> Entity {
+    let row = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(8.0),
+                    ..default()
+                },
+                ..default()
+            },
+            MenuEntity,
+        ))
+        .id();
+
+    let enhanced_available = crate::game_state::HoustonMode::enhanced_available();
+    let modes = [
+        (crate::game_state::HoustonMode::Classic, "Classic", true),
+        (crate::game_state::HoustonMode::Enhanced, "Enhanced", enhanced_available),
+    ];
+
+    let mut children = Vec::new();
+    for (mode, label, enabled) in modes {
+        let is_selected = selected == mode;
+        let bg = if !enabled {
+            DISABLED_COLOR
+        } else if is_selected {
+            ACCENT_COLOR
+        } else {
+            BUTTON_BG
+        };
+        let text_color = if !enabled {
+            DISABLED_COLOR
+        } else if is_selected {
+            Color::BLACK
+        } else {
+            TEXT_COLOR
+        };
+
+        let btn = commands
+            .spawn((
+                ButtonBundle {
+                    style: Style {
+                        padding: UiRect::all(Val::Px(8.0)),
+                        ..default()
+                    },
+                    background_color: BackgroundColor(bg),
+                    border_radius: BorderRadius::all(Val::Px(4.0)),
+                    ..default()
+                },
+                MenuButton {
+                    action: MenuAction::SelectHoustonMode(mode),
+                },
+                MenuEntity,
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    label,
+                    TextStyle {
+                        font: if is_selected && enabled { font.clone() } else { font_regular.clone() },
+                        font_size: 14.0,
+                        color: text_color,
+                    },
+                ));
+            })
+            .id();
+        children.push(btn);
+    }
+
+    commands.entity(row).push_children(&children);
+    row
+}
+
 fn spawn_text_input(
     commands: &mut Commands,
     font: &Handle<Font>,
@@ -1261,6 +1347,17 @@ fn menu_mouse_click_handler(
                 MenuAction::SelectDifficulty(diff) => {
                     mission_config.difficulty = *diff;
                 }
+                MenuAction::SelectHoustonMode(mode) => {
+                    let can_use = match mode {
+                        crate::game_state::HoustonMode::Classic => true,
+                        crate::game_state::HoustonMode::Enhanced => {
+                            crate::game_state::HoustonMode::enhanced_available()
+                        }
+                    };
+                    if can_use {
+                        mission_config.houston_mode = *mode;
+                    }
+                }
                 MenuAction::ShowSavedGames => {
                     for entity in overlay_query.iter() {
                         if let Some(mut e) = commands.get_entity(entity) {
@@ -1328,6 +1425,39 @@ fn update_difficulty_selector_state(
                 if let Ok(mut text) = text_query.get_mut(*child) {
                     for section in text.sections.iter_mut() {
                         section.style.color = if is_selected { Color::BLACK } else { TEXT_COLOR };
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn update_houston_selector_state(
+    mission_config: Res<crate::game_state::MissionConfig>,
+    button_query: Query<(&MenuButton, &Children)>,
+    mut text_query: Query<&mut Text>,
+) {
+    if !mission_config.is_changed() {
+        return;
+    }
+    let enhanced_available = crate::game_state::HoustonMode::enhanced_available();
+    for (button, children) in button_query.iter() {
+        if let MenuAction::SelectHoustonMode(mode) = &button.action {
+            let is_selected = mission_config.houston_mode == *mode;
+            let enabled = match mode {
+                crate::game_state::HoustonMode::Classic => true,
+                crate::game_state::HoustonMode::Enhanced => enhanced_available,
+            };
+            for child in children.iter() {
+                if let Ok(mut text) = text_query.get_mut(*child) {
+                    for section in text.sections.iter_mut() {
+                        section.style.color = if !enabled {
+                            DISABLED_COLOR
+                        } else if is_selected {
+                            Color::BLACK
+                        } else {
+                            TEXT_COLOR
+                        };
                     }
                 }
             }
@@ -1416,6 +1546,17 @@ fn menu_action_handler(
             }
             MenuAction::SelectDifficulty(diff) => {
                 mission_config.difficulty = *diff;
+            }
+            MenuAction::SelectHoustonMode(mode) => {
+                let can_use = match mode {
+                    crate::game_state::HoustonMode::Classic => true,
+                    crate::game_state::HoustonMode::Enhanced => {
+                        crate::game_state::HoustonMode::enhanced_available()
+                    }
+                };
+                if can_use {
+                    mission_config.houston_mode = *mode;
+                }
             }
             MenuAction::ShowSavedGames => {
                 for entity in overlay_query.iter() {

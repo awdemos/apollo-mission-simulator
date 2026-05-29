@@ -267,7 +267,7 @@ fn spawn_game_world(
             Camera3dBundle {
                 camera: Camera {
                     order: 0,
-                    clear_color: ClearColorConfig::Custom(Color::srgb(0.55, 0.70, 0.88)),
+                    clear_color: ClearColorConfig::Default,
                     ..default()
                 },
                 projection: Projection::Perspective(PerspectiveProjection {

@@ -1274,7 +1274,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.55, 0.53, 0.50),
             metallic: 0.0,
             perceptual_roughness: 0.85,
-            emissive: LinearRgba::new(0.08, 0.07, 0.06, 1.0),
+            emissive: LinearRgba::new(2.0, 1.8, 1.5, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1282,7 +1282,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.28, 0.28, 0.30),
             metallic: 0.1,
             perceptual_roughness: 0.5,
-            emissive: LinearRgba::new(0.04, 0.04, 0.05, 1.0),
+            emissive: LinearRgba::new(1.0, 1.0, 1.2, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1290,6 +1290,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.40, 0.40, 0.42),
             metallic: 0.1,
             perceptual_roughness: 0.6,
+            emissive: LinearRgba::new(1.2, 1.2, 1.3, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1297,6 +1298,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.25, 0.22, 0.18),
             metallic: 0.0,
             perceptual_roughness: 0.95,
+            emissive: LinearRgba::new(0.8, 0.7, 0.5, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1304,7 +1306,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.22, 0.22, 0.22),
             metallic: 0.0,
             perceptual_roughness: 0.3,
-            emissive: LinearRgba::new(0.02, 0.06, 0.04, 1.0),
+            emissive: LinearRgba::new(0.5, 1.5, 1.0, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1312,12 +1314,13 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.18, 0.18, 0.18),
             metallic: 0.0,
             perceptual_roughness: 0.4,
+            emissive: LinearRgba::new(0.6, 0.6, 0.6, 1.0),
             cull_mode: None,
             ..default()
         })),
         display_glow: Some(materials.add(StandardMaterial {
             base_color: Color::srgb(0.15, 0.35, 0.25),
-            emissive: LinearRgba::new(0.25, 0.75, 0.50, 1.0),
+            emissive: LinearRgba::new(3.0, 8.0, 5.0, 1.0),
             metallic: 0.0,
             perceptual_roughness: 0.2,
             cull_mode: None,
@@ -1335,7 +1338,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.7, 0.7, 0.72),
             metallic: 1.0,
             perceptual_roughness: 0.3,
-            emissive: LinearRgba::new(0.03, 0.03, 0.03, 0.1),
+            emissive: LinearRgba::new(0.3, 0.3, 0.3, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1343,6 +1346,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.45, 0.45, 0.47),
             metallic: 0.0,
             perceptual_roughness: 0.6,
+            emissive: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1350,6 +1354,7 @@ fn spawn_cm_interior(
             base_color: Color::srgb(0.40, 0.30, 0.20),
             metallic: 0.0,
             perceptual_roughness: 0.9,
+            emissive: LinearRgba::new(0.5, 0.4, 0.3, 1.0),
             cull_mode: None,
             ..default()
         })),
@@ -1697,9 +1702,9 @@ fn spawn_interior_lighting(parent: &mut ChildBuilder) {
     
     parent.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: INTERIOR_LIGHT_INTENSITY,
+            intensity: 2_000_000.0,
             color: Color::srgb(0.95, 0.92, 0.85),
-            range: INTERIOR_LIGHT_RANGE,
+            range: 100.0,
             shadows_enabled: false,
             ..default()
         },
@@ -1708,9 +1713,9 @@ fn spawn_interior_lighting(parent: &mut ChildBuilder) {
     });
     parent.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: OVERHEAD_LIGHT_INTENSITY,
+            intensity: 1_500_000.0,
             color: Color::srgb(0.9, 0.9, 0.85),
-            range: OVERHEAD_LIGHT_RANGE,
+            range: 100.0,
             shadows_enabled: false,
             ..default()
         },
@@ -1719,9 +1724,9 @@ fn spawn_interior_lighting(parent: &mut ChildBuilder) {
     });
     parent.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 100_000.0,
+            intensity: 1_000_000.0,
             color: Color::srgb(0.85, 0.85, 0.80),
-            range: 10.0,
+            range: 100.0,
             shadows_enabled: false,
             ..default()
         },

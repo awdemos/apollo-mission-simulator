@@ -1259,6 +1259,11 @@ pub fn spawn_lunar_module(
 pub struct CmInterior;
 
 #[derive(Component)]
+pub struct InteriorLight {
+    pub local_offset: Vec3,
+}
+
+#[derive(Component)]
 pub struct LaunchPad;
 fn spawn_cm_interior(
     commands: &mut Commands,
@@ -1380,7 +1385,6 @@ fn spawn_cm_interior(
         spawn_furniture(parent, cache, m(&material_cache.seat), m(&material_cache.switch));
         spawn_console(parent, meshes, materials, m(&material_cache.panel), m(&material_cache.panel_highlight), m(&material_cache.dsky), m(&material_cache.fdai), m(&material_cache.display_glow));
         spawn_windows(parent, meshes, materials, m(&material_cache.window));
-        spawn_interior_lighting(parent);
         
         crate::panels::spawn_historical_panels(
             parent, meshes, materials,
@@ -1388,6 +1392,62 @@ fn spawn_cm_interior(
         );
         
         crate::panels::spawn_electrical_connectors(parent, meshes, materials);
+    });
+    
+    // Spawn interior lights as children of Saturn V (NOT CmInterior) to avoid
+    // the 0.1-scaled entity breaking Bevy 0.14's clustered forward renderer.
+    commands.entity(parent).with_children(|parent| {
+        // Console light
+        parent.spawn((
+            PointLightBundle {
+                point_light: PointLight {
+                    intensity: 2_000_000.0,
+                    color: Color::srgb(0.95, 0.92, 0.85),
+                    range: 100.0,
+                    shadows_enabled: false,
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, cm_y_center + SATURN_V_SCALE * (CONSOLE_Y + 0.4), SATURN_V_SCALE * -0.3),
+                ..default()
+            },
+            InteriorLight {
+                local_offset: Vec3::new(0.0, CONSOLE_Y + 0.4, -0.3),
+            },
+        ));
+        // Overhead light
+        parent.spawn((
+            PointLightBundle {
+                point_light: PointLight {
+                    intensity: 1_500_000.0,
+                    color: Color::srgb(0.9, 0.9, 0.85),
+                    range: 100.0,
+                    shadows_enabled: false,
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, cm_y_center + SATURN_V_SCALE * (CEILING_Y * 0.7), 0.0),
+                ..default()
+            },
+            InteriorLight {
+                local_offset: Vec3::new(0.0, CEILING_Y * 0.7, 0.0),
+            },
+        ));
+        // Floor light
+        parent.spawn((
+            PointLightBundle {
+                point_light: PointLight {
+                    intensity: 1_000_000.0,
+                    color: Color::srgb(0.85, 0.85, 0.80),
+                    range: 100.0,
+                    shadows_enabled: false,
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, cm_y_center + SATURN_V_SCALE * (FLOOR_Y + 0.8), SATURN_V_SCALE * 0.4),
+                ..default()
+            },
+            InteriorLight {
+                local_offset: Vec3::new(0.0, FLOOR_Y + 0.8, 0.4),
+            },
+        ));
     });
     
     interior
@@ -1695,44 +1755,6 @@ fn spawn_windows(
             ..default()
         });
     }
-}
-
-fn spawn_interior_lighting(parent: &mut ChildBuilder) {
-    use crate::config::*;
-    
-    parent.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 2_000_000.0,
-            color: Color::srgb(0.95, 0.92, 0.85),
-            range: 100.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, CONSOLE_Y + 0.4, -0.3),
-        ..default()
-    });
-    parent.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1_500_000.0,
-            color: Color::srgb(0.9, 0.9, 0.85),
-            range: 100.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, CEILING_Y * 0.7, 0.0),
-        ..default()
-    });
-    parent.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1_000_000.0,
-            color: Color::srgb(0.85, 0.85, 0.80),
-            range: 100.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, FLOOR_Y + 0.8, 0.4),
-        ..default()
-    });
 }
 
 /// Create a smooth conical frustum mesh

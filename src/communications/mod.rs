@@ -401,13 +401,9 @@ pub struct CommunicationsBus {
     pub uplink_rate: DataRate,
     pub signal_strength: f32,
     pub snr_db: f32,
-    /// Main carrier: 2287.5 MHz (CuriousMarc Part 39)
     pub frequency_mhz: f64,
-    /// Data subcarrier: 1024 kHz (CuriousMarc Part 39: "data sub carrier frequency of 1.024 MHz")
     pub data_subcarrier_khz: f64,
-    /// Voice subcarrier: 1250 kHz (CuriousMarc Part 39: "1.25 MHz voice sub carrier")
     pub voice_subcarrier_khz: f64,
-    /// Emergency subcarrier: 768 kHz (CuriousMarc Part 39)
     pub emergency_subcarrier_khz: f64,
     pub transmitter_power_watts: f32,
     pub bit_error_rate: f64,
@@ -420,6 +416,13 @@ pub struct CommunicationsBus {
     pub ground_station: String,
     pub status: CommStatus,
     pub carrier_modulation: ModulationType,
+    pub s_band_transmitter_on: bool,
+    pub s_band_receiver_on: bool,
+    pub s_band_power_amp_on: bool,
+    pub vhf_transmitter_a_on: bool,
+    pub vhf_transmitter_b_on: bool,
+    pub vhf_receiver_on: bool,
+    pub high_gain_antenna_on: bool,
 }
 
 impl Default for CommunicationsBus {
@@ -444,6 +447,13 @@ impl Default for CommunicationsBus {
             ground_station: "Madrid".to_string(),
             status: CommStatus::Nominal,
             carrier_modulation: ModulationType::PhaseModulation,
+            s_band_transmitter_on: true,
+            s_band_receiver_on: true,
+            s_band_power_amp_on: true,
+            vhf_transmitter_a_on: true,
+            vhf_transmitter_b_on: false,
+            vhf_receiver_on: true,
+            high_gain_antenna_on: true,
         }
     }
 }

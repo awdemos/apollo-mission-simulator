@@ -19,6 +19,14 @@ pub struct CommandServiceModule {
     pub environmental_control: EnvironmentalControlSystem,
     pub thermal: ThermalControlSystem,
     pub gnc: GuidanceNavigationControl,
+    pub abort_mode_active: bool,
+    pub dse_powered: bool,
+    pub interior_lights_on: bool,
+    pub flood_lights_on: bool,
+    pub panel_lights_on: bool,
+    pub uv_lights_on: bool,
+    pub event_timer_powered: bool,
+    pub tape_recorder_active: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +37,11 @@ pub struct GuidanceNavigationControl {
     pub star_tracker_aligned: bool,
     pub agc_memory_words: u16,
     pub standby_mode: bool,
+    pub rhc_powered: bool,
+    pub thc_powered: bool,
+    pub tvc_enabled: bool,
+    pub io_a_powered: bool,
+    pub io_b_powered: bool,
 }
 
 impl Default for GuidanceNavigationControl {
@@ -40,6 +53,11 @@ impl Default for GuidanceNavigationControl {
             star_tracker_aligned: false,
             agc_memory_words: 2048,
             standby_mode: false,
+            rhc_powered: true,
+            thc_powered: true,
+            tvc_enabled: true,
+            io_a_powered: true,
+            io_b_powered: true,
         }
     }
 }
@@ -78,6 +96,14 @@ fn setup_csm_systems(mut commands: Commands) {
             environmental_control: EnvironmentalControlSystem::default(),
             thermal: ThermalControlSystem::default(),
             gnc: GuidanceNavigationControl::default(),
+            abort_mode_active: false,
+            dse_powered: true,
+            interior_lights_on: true,
+            flood_lights_on: false,
+            panel_lights_on: true,
+            uv_lights_on: false,
+            event_timer_powered: true,
+            tape_recorder_active: false,
         },
         Name::new("CSM-107 Systems"),
     ));

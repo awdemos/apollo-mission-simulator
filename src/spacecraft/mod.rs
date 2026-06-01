@@ -1397,13 +1397,12 @@ fn spawn_cm_interior(
     // Spawn interior lights as children of Saturn V (NOT CmInterior) to avoid
     // the 0.1-scaled entity breaking Bevy 0.14's clustered forward renderer.
     commands.entity(parent).with_children(|parent| {
-        // Console light
         parent.spawn((
             PointLightBundle {
                 point_light: PointLight {
-                    intensity: 2_000_000.0,
+                    intensity: 500_000.0,
                     color: Color::srgb(0.95, 0.92, 0.85),
-                    range: 100.0,
+                    range: 2.0,
                     shadows_enabled: false,
                     ..default()
                 },
@@ -1414,13 +1413,12 @@ fn spawn_cm_interior(
                 local_offset: Vec3::new(0.0, CONSOLE_Y + 0.4, -0.3),
             },
         ));
-        // Overhead light
         parent.spawn((
             PointLightBundle {
                 point_light: PointLight {
-                    intensity: 1_500_000.0,
+                    intensity: 400_000.0,
                     color: Color::srgb(0.9, 0.9, 0.85),
-                    range: 100.0,
+                    range: 2.0,
                     shadows_enabled: false,
                     ..default()
                 },
@@ -1431,13 +1429,12 @@ fn spawn_cm_interior(
                 local_offset: Vec3::new(0.0, CEILING_Y * 0.7, 0.0),
             },
         ));
-        // Floor light
         parent.spawn((
             PointLightBundle {
                 point_light: PointLight {
-                    intensity: 1_000_000.0,
+                    intensity: 300_000.0,
                     color: Color::srgb(0.85, 0.85, 0.80),
-                    range: 100.0,
+                    range: 2.0,
                     shadows_enabled: false,
                     ..default()
                 },

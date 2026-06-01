@@ -188,7 +188,7 @@ pub fn update_orbit_camera(
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut mouse_motion: EventReader<bevy::input::mouse::MouseMotion>,
     mut mouse_wheel: EventReader<bevy::input::mouse::MouseWheel>,
-    mut query: Query<(&mut Transform, &mut OrbitCamera), With<Camera3d>>,
+    mut query: Query<(&mut Transform, &mut OrbitCamera, Option<&mut bevy::render::camera::Exposure>, Option<&mut Projection>), With<Camera3d>>,
     spacecraft_query: Query<&Transform, (With<crate::spacecraft::PlayerVehicle>, Without<Camera3d>)>,
     launch_site_pos: Res<crate::world::LaunchSitePosition>,
     mut clear_color: ResMut<ClearColor>,
@@ -202,7 +202,15 @@ pub fn update_orbit_camera(
     let motions: Vec<_> = mouse_motion.read().collect();
     let wheels: Vec<_> = mouse_wheel.read().collect();
 
-    for (mut transform, mut orbit) in query.iter_mut() {
+    for (mut transform, mut orbit, exposure, projection) in query.iter_mut() {
+        if let Some(mut exp) = exposure {
+            exp.ev100 = bevy::render::camera::Exposure::BLENDER.ev100;
+        }
+        if let Some(mut proj) = projection {
+            if let Projection::Perspective(ref mut p) = *proj {
+                p.far = 10000.0;
+            }
+        }
         let is_orbiting = mouse_button.pressed(MouseButton::Middle)
             || (keyboard.pressed(KeyCode::AltLeft) && mouse_button.pressed(MouseButton::Left));
 
@@ -275,7 +283,7 @@ pub fn update_interior_camera(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut mouse_motion: EventReader<bevy::input::mouse::MouseMotion>,
-    mut query: Query<(&mut Transform, &mut InteriorCamera), With<Camera3d>>,
+    mut query: Query<(&mut Transform, &mut InteriorCamera, Option<&mut bevy::render::camera::Exposure>, Option<&mut Projection>), With<Camera3d>>,
     spacecraft_query: Query<&Transform, (With<crate::spacecraft::PlayerVehicle>, Without<Camera3d>)>,
     interior_query: Query<&Transform, (With<crate::spacecraft::CmInterior>, Without<Camera3d>)>,
     mut windows: Query<&mut Window>,
@@ -289,7 +297,15 @@ pub fn update_interior_camera(
 
     let motions: Vec<_> = mouse_motion.read().collect();
 
-    for (mut transform, mut interior) in query.iter_mut() {
+    for (mut transform, mut interior, exposure, projection) in query.iter_mut() {
+        if let Some(mut exp) = exposure {
+            exp.ev100 = 5.0;
+        }
+        if let Some(mut proj) = projection {
+            if let Projection::Perspective(ref mut p) = *proj {
+                p.far = 50.0;
+            }
+        }
         if let Ok(spacecraft_transform) = spacecraft_query.get_single() {
             let interior_transform = interior_query.get_single();
             let interior_y = interior_transform.as_ref().map(|t| t.translation.y).unwrap_or(crate::config::CM_CENTER_OFFSET);

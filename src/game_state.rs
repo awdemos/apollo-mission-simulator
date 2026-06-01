@@ -272,10 +272,11 @@ fn spawn_game_world(
                 },
                 projection: Projection::Perspective(PerspectiveProjection {
                     fov: 45f32.to_radians(),
-                    near: 0.01,
+                    near: 0.001,
                     far: 10000.0,
                     ..default()
                 }),
+                exposure: bevy::render::camera::Exposure::INDOOR,
                 transform: Transform::from_translation(cam_pos).looking_at(rocket_pos + world_up * 4.0, world_up),
                 ..default()
             },

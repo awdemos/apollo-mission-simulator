@@ -32,5 +32,5 @@ llm-npcs = ["dep:reqwest", "dep:tokio", "dep:serde", "dep:serde_json"]
 cc = "1.0"
 
 [[bin]]
-name = "apollo-mim"
+name = "apollo-sim"
 path = "src/main.rs"

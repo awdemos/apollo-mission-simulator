@@ -59,7 +59,9 @@ impl Default for MissionConfig {
 
 impl MissionConfig {
     pub fn all_crew_named(&self) -> bool {
-        true
+        !self.commander_name.trim().is_empty()
+            && !self.cmp_name.trim().is_empty()
+            && !self.lmp_name.trim().is_empty()
     }
 }
 

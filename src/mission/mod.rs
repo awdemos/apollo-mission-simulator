@@ -176,7 +176,7 @@ fn update_mission_timer(
 fn handle_mission_actions(
     mut events: EventReader<MissionActionEvent>,
     mut state: ResMut<MissionState>,
-    mut spacecraft_query: Query<&mut crate::spacecraft::Spacecraft>,
+    _spacecraft_query: Query<&mut crate::spacecraft::Spacecraft>,
     mut agc: Option<ResMut<crate::agc::AgcState>>,
     mut csm_query: Query<&mut crate::systems::csm::CommandServiceModule>,
     mut saturn_query: Query<&mut crate::systems::saturn_v::SaturnVSystems>,

@@ -191,7 +191,7 @@ fn spawn_launch_complex(
         ..default()
     });
 
-    let ground_mat = materials.add(StandardMaterial {
+    let _ground_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.25, 0.45, 0.18),
         metallic: 0.0,
         perceptual_roughness: 0.95,
@@ -215,7 +215,7 @@ fn spawn_launch_complex(
         ..default()
     });
 
-    let tree_mat = materials.add(StandardMaterial {
+    let _tree_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.15, 0.45, 0.12),
         metallic: 0.0,
         perceptual_roughness: 0.9,

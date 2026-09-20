@@ -7,7 +7,6 @@ mod sky;
 mod weather;
 mod ui;
 mod physics;
-mod audio;
 mod communications;
 mod planning;
 pub mod virtual_agc;
@@ -63,7 +62,6 @@ fn main() {
         .add_plugins(panel_wiring::PanelWiringPlugin)
         .add_plugins(ui::UiPlugin)
         .add_plugins(ui::menu::MenuPlugin)
-        .add_plugins(audio::AudioPlugin)
     .add_plugins(crew::CrewPlugin)
     .add_plugins(npc::NpcPlugin)
     .add_plugins(lvdc::LvdcPlugin)

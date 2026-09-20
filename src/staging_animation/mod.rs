@@ -33,15 +33,15 @@ fn tag_saturn_v_stages(
                         StageIdentifier::SIC
                     } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + 0.5 {
                         StageIdentifier::SII
-                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVb_HEIGHT + 0.5 {
+                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVB_HEIGHT + 0.5 {
                         StageIdentifier::SIVB
-                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVb_HEIGHT + crate::config::IU_HEIGHT + 0.5 {
+                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVB_HEIGHT + crate::config::IU_HEIGHT + 0.5 {
                         StageIdentifier::IU
-                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVb_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + 0.5 {
+                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVB_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + 0.5 {
                         StageIdentifier::SLA
-                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVb_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + crate::config::SM_HEIGHT + 0.5 {
+                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVB_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + crate::config::SM_HEIGHT + 0.5 {
                         StageIdentifier::SM
-                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVb_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + crate::config::SM_HEIGHT + crate::config::CSM_HEIGHT + 0.5 {
+                    } else if local_y < crate::config::S_IC_HEIGHT + crate::config::S_II_HEIGHT + crate::config::S_IVB_HEIGHT + crate::config::IU_HEIGHT + crate::config::SLA_HEIGHT + crate::config::SM_HEIGHT + crate::config::CSM_HEIGHT + 0.5 {
                         StageIdentifier::CM
                     } else {
                         StageIdentifier::LES

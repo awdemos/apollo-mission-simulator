@@ -662,7 +662,7 @@ fn despawn_menu_entities(
     query: Query<Entity, With<MenuEntity>>,
 ) {
     for entity in query.iter() {
-        if let Some(mut e) = commands.get_entity(entity) {
+        if let Some(e) = commands.get_entity(entity) {
             e.despawn_recursive();
         }
     }
@@ -686,7 +686,7 @@ fn despawn_menu_camera(
     query: Query<Entity, With<MenuCamera>>,
 ) {
     for entity in query.iter() {
-        if let Some(mut e) = commands.get_entity(entity) {
+        if let Some(e) = commands.get_entity(entity) {
             e.despawn_recursive();
         }
     }
@@ -1290,7 +1290,7 @@ fn menu_mouse_click_handler(
             match &button.action {
                 MenuAction::NewMission => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1305,7 +1305,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::Launch => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1313,7 +1313,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::Back => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1321,7 +1321,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::Resume => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1329,12 +1329,12 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::ReturnToMenu => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
                     for entity in game_world_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1360,7 +1360,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::ShowSavedGames => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1368,7 +1368,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::ShowComputerOptions => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1376,7 +1376,7 @@ fn menu_mouse_click_handler(
                 }
                 MenuAction::CloseOverlay => {
                     for entity in overlay_query.iter() {
-                        if let Some(mut e) = commands.get_entity(entity) {
+                        if let Some(e) = commands.get_entity(entity) {
                             e.despawn_recursive();
                         }
                     }
@@ -1486,7 +1486,7 @@ fn menu_action_handler(
         match &button.action {
             MenuAction::NewMission => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1501,7 +1501,7 @@ fn menu_action_handler(
             }
             MenuAction::Launch => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1513,7 +1513,7 @@ fn menu_action_handler(
             }
             MenuAction::Back => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1521,7 +1521,7 @@ fn menu_action_handler(
             }
             MenuAction::Resume => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1529,12 +1529,12 @@ fn menu_action_handler(
             }
             MenuAction::ReturnToMenu => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
                 for entity in game_world_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1560,7 +1560,7 @@ fn menu_action_handler(
             }
             MenuAction::ShowSavedGames => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1568,7 +1568,7 @@ fn menu_action_handler(
             }
             MenuAction::ShowComputerOptions => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }
@@ -1576,7 +1576,7 @@ fn menu_action_handler(
             }
             MenuAction::CloseOverlay => {
                 for entity in overlay_query.iter() {
-                    if let Some(mut e) = commands.get_entity(entity) {
+                    if let Some(e) = commands.get_entity(entity) {
                         e.despawn_recursive();
                     }
                 }

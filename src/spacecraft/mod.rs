@@ -172,7 +172,7 @@ fn spawn_saturn_v(
         emissive: LinearRgba::new(0.08, 0.08, 0.09, 0.15),
         ..default()
     });
-    let rust = materials.add(StandardMaterial {
+    let _rust = materials.add(StandardMaterial {
         base_color: Color::srgb(0.55, 0.28, 0.12),
         metallic: 0.0,
         perceptual_roughness: 0.45,
@@ -748,7 +748,7 @@ fn spawn_saturn_v(
         // ============================================
         // S-IVB aft skirt
         let ivb_skirt_height = 0.2 * SATURN_V_SCALE;
-        let ivb_skirt = meshes.add(Cylinder::new(S_IVb_RADIUS * 1.02, ivb_skirt_height));
+        let ivb_skirt = meshes.add(Cylinder::new(S_IVB_RADIUS * 1.02, ivb_skirt_height));
         parent.spawn(PbrBundle {
             mesh: ivb_skirt.clone(),
             material: silver.clone(),
@@ -766,23 +766,23 @@ fn spawn_saturn_v(
             ..default()
         });
 
-        let ivb_lox_tank = meshes.add(Cylinder::new(S_IVb_RADIUS * 0.95, S_IVb_HEIGHT * 0.4));
+        let ivb_lox_tank = meshes.add(Cylinder::new(S_IVB_RADIUS * 0.95, S_IVB_HEIGHT * 0.4));
         parent.spawn(PbrBundle {
             mesh: ivb_lox_tank,
             material: lox_mat.clone(),
-            transform: Transform::from_xyz(0.0, y + S_IVb_HEIGHT * 0.25, 0.0),
+            transform: Transform::from_xyz(0.0, y + S_IVB_HEIGHT * 0.25, 0.0),
             ..default()
         });
-        let ivb_lh2_tank = meshes.add(Cylinder::new(S_IVb_RADIUS * 0.95, S_IVb_HEIGHT * 0.45));
+        let ivb_lh2_tank = meshes.add(Cylinder::new(S_IVB_RADIUS * 0.95, S_IVB_HEIGHT * 0.45));
         parent.spawn(PbrBundle {
             mesh: ivb_lh2_tank,
             material: lh2_mat.clone(),
-            transform: Transform::from_xyz(0.0, y + S_IVb_HEIGHT * 0.68, 0.0),
+            transform: Transform::from_xyz(0.0, y + S_IVB_HEIGHT * 0.68, 0.0),
             ..default()
         });
 
-        let ivb_body_height = S_IVb_HEIGHT - ivb_skirt_height;
-        let ivb_body = meshes.add(Cylinder::new(S_IVb_RADIUS, ivb_body_height));
+        let ivb_body_height = S_IVB_HEIGHT - ivb_skirt_height;
+        let ivb_body = meshes.add(Cylinder::new(S_IVB_RADIUS, ivb_body_height));
         parent.spawn(PbrBundle {
             mesh: ivb_body.clone(),
             material: aluminum.clone(),
@@ -1078,7 +1078,7 @@ pub fn spawn_command_module(
         ..default()
     });
     let cylinder = meshes.add(Cylinder::new(1.9, 3.0));
-    let cone_mesh = meshes.add(Cone { radius: 1.9, height: 3.5 });
+    let _cone_mesh = meshes.add(Cone { radius: 1.9, height: 3.5 });
     commands.spawn((
         PbrBundle {
             mesh: cylinder,

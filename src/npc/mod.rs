@@ -565,7 +565,7 @@ fn generate_scripted_dialogue(trigger: &DialogueTrigger) -> Option<NpcDialogueEv
 fn handle_player_radio_message(
     mut radio_events: EventReader<PlayerRadioMessage>,
     mut queue: ResMut<RadioMessageQueue>,
-    mission_state: Res<crate::mission::MissionState>,
+    _mission_state: Res<crate::mission::MissionState>,
     #[cfg(feature = "llm-npcs")] mut houston: ResMut<HoustonState>,
     #[cfg(feature = "llm-npcs")] crew_query: Query<&crate::crew::CrewMember>,
     #[cfg(feature = "llm-npcs")] csm_query: Query<&crate::systems::csm::CommandServiceModule>,

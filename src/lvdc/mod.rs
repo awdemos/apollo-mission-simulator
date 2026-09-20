@@ -160,7 +160,7 @@ fn update_lvdc_guidance(
         false
     };
 
-    if let Ok((mut spacecraft, mut launch)) = spacecraft_query.get_single_mut() {
+    if let Ok((_spacecraft, launch)) = spacecraft_query.get_single_mut() {
         match launch.state {
             crate::spacecraft::LaunchState::OnPad => {
             }

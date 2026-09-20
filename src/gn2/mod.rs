@@ -93,7 +93,7 @@ fn update_gn2_system(
     }
 
     let mut total_consumption = 0.0;
-    for mut consumer in consumers.iter_mut() {
+    for consumer in consumers.iter_mut() {
         if consumer.active && gn2.distribution_pressure_psi >= consumer.min_pressure_psi {
             total_consumption += consumer.consumption_rate_kg_s * dt;
         }

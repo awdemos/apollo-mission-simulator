@@ -3,10 +3,9 @@ pub mod menu;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiSet};
 use crate::mission::{MissionState, format_time, get_apollo11, get_apollo13, MissionActionEvent};
-use crate::agc::AgcState;
 use crate::spacecraft::Spacecraft;
-use crate::communications::{CommunicationsBus, GroundControlState, CommMode, voice_loop_name, ground_station_name, DataRate};
-use crate::planning::{MissionPlan, PlanStatus, validate_launch_plan, validate_flight_path, validate_return_plan};
+use crate::communications::{CommunicationsBus, GroundControlState, voice_loop_name, ground_station_name};
+use crate::planning::{MissionPlan, validate_launch_plan, validate_flight_path, validate_return_plan};
 use crate::npc::{NpcDialogueEvent, NpcCharacter, DialogueUrgency, PlayerRadioMessage};
 
 pub struct UiPlugin;

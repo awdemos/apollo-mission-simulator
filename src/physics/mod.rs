@@ -107,10 +107,10 @@ fn update_rocket_physics(
     time_scale: Res<crate::TimeScale>,
     mut query: Query<(&mut Transform, &mut Spacecraft, &mut LaunchController)>,
     params: Res<OrbitalParameters>,
-    mission_state: Res<crate::mission::MissionState>,
+    _mission_state: Res<crate::mission::MissionState>,
 ) {
     let dt = (time.delta_seconds() * time_scale.multiplier) as f64;
-    for (mut transform, mut spacecraft, mut controller) in query.iter_mut() {
+    for (transform, mut spacecraft, mut controller) in query.iter_mut() {
         if spacecraft.vessel_type != crate::spacecraft::VesselType::SaturnV {
             continue;
         }

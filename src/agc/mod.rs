@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSet};
 use crate::virtual_agc::{VirtualAgc, AgcChannel, DskyKey, key_to_channel_value};
-use crate::panels::{PanelInteraction, DskyDisplay, DskyDigit, DskySign, DskyKeyType, DskyStatusLights};
+use crate::panels::{PanelInteraction, DskyDisplay, DskyDigit, DskySign, DskyKeyType};
 use std::path::Path;
 use chrono::Timelike;
 
@@ -452,7 +452,7 @@ fn dsky_ui(
     let ctx = contexts.ctx_mut();
     let mut frame = egui::Frame::window(&ctx.style());
     frame.fill = egui::Color32::from_rgb(28, 30, 26);
-    frame.stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(55, 58, 50));
+    frame.stroke = egui::Stroke::new(2.0_f32, egui::Color32::from_rgb(55, 58, 50));
     frame.rounding = egui::Rounding::same(4.0);
     frame.inner_margin = egui::Margin::same(8.0);
 
@@ -601,7 +601,7 @@ fn dsky_keyboard_styled(
     let key_btn = |ui: &mut egui::Ui, label: &str, size: egui::Vec2| -> egui::Response {
         let btn = egui::Button::new(egui::RichText::new(label).font(key_font.clone()).color(egui::Color32::from_rgb(200, 200, 190)))
             .fill(egui::Color32::from_rgb(45, 48, 40))
-            .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(65, 68, 58)))
+            .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(65, 68, 58)))
             .rounding(egui::Rounding::same(2.0));
         ui.add_sized(size, btn)
     };

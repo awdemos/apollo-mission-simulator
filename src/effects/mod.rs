@@ -70,7 +70,7 @@ fn spawn_engine_exhaust(
                     + 0.3f32 * crate::config::SATURN_V_SCALE
                     + crate::config::S_II_HEIGHT
                     + 0.25f32 * crate::config::SATURN_V_SCALE
-                    + crate::config::S_IVb_HEIGHT
+                    + crate::config::S_IVB_HEIGHT
                     - 0.34f32 * crate::config::SATURN_V_SCALE * 0.3f32;
                 (1u32, 0.10f32, offset)
             }

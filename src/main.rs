@@ -15,6 +15,7 @@ pub mod systems;
 mod panels;
 mod panel_wiring;
 mod game_state;
+mod intro;
 mod crew;
 mod npc;
 mod lvdc;
@@ -62,6 +63,7 @@ fn main() {
         .add_plugins(panel_wiring::PanelWiringPlugin)
         .add_plugins(ui::UiPlugin)
         .add_plugins(ui::menu::MenuPlugin)
+        .add_plugins(intro::IntroPlugin)
     .add_plugins(crew::CrewPlugin)
     .add_plugins(npc::NpcPlugin)
     .add_plugins(lvdc::LvdcPlugin)

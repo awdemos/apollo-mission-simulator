@@ -6,7 +6,9 @@ use bevy::pbr::CascadeShadowConfigBuilder;
 pub enum AppState {
     #[default]
     MainMenu,
+    Intro,
     MissionSetup,
+    CrewIntro,
     Loading,
     InGame,
     Paused,
@@ -26,7 +28,9 @@ impl Plugin for GameStatePlugin {
             .add_systems(Update, check_game_over.run_if(in_state(AppState::InGame)))
             .add_systems(OnEnter(AppState::Paused), show_cursor)
             .add_systems(OnEnter(AppState::MainMenu), show_cursor)
+            .add_systems(OnEnter(AppState::Intro), show_cursor)
             .add_systems(OnEnter(AppState::MissionSetup), show_cursor)
+            .add_systems(OnEnter(AppState::CrewIntro), show_cursor)
             .add_systems(OnEnter(AppState::Loading), spawn_game_world)
             .add_systems(Update, transition_loading_to_ingame.run_if(in_state(AppState::Loading)))
             .add_systems(OnEnter(AppState::GameOver), show_cursor);

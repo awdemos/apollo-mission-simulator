@@ -1493,7 +1493,7 @@ fn menu_action_handler(
                 mission_config.commander_name.clear();
                 mission_config.cmp_name.clear();
                 mission_config.lmp_name.clear();
-                next_state.set(crate::game_state::AppState::MissionSetup);
+                next_state.set(crate::game_state::AppState::Intro);
             }
             MenuAction::Settings => {}
             MenuAction::Quit => {
@@ -1506,7 +1506,7 @@ fn menu_action_handler(
                     }
                 }
                 if mission_config.all_crew_named() {
-                    next_state.set(crate::game_state::AppState::Loading);
+                    next_state.set(crate::game_state::AppState::CrewIntro);
                 } else {
                     spawn_error_overlay(&mut commands, &asset_server, "Please name all three crew members before launching.");
                 }

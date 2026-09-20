@@ -41,3 +41,5 @@ cc = "1.0"
 [[bin]]
 name = "apollo-sim"
 path = "src/main.rs"
+test = false
+bench = false
